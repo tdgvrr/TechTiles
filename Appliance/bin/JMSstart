@@ -1,0 +1,199 @@
+#!/bin/bash
+
+# 
+# Script to start the JMS services 
+#
+
+# Parse args for "-t" 
+
+tid=
+while getopts ht: name
+do
+    case $name in
+    t) tid="$OPTARG";;
+    ?) echo "Usage: $0: [-t tenantId] args" 
+       exit 0;;
+    esac
+done
+
+shift $(($OPTIND - 1))
+
+# Must have install directory (default: /appliance)
+
+if [ -z "$FMA_DIR" ]; then
+   export FMA_DIR=/appliance
+   if [ -f "/etc/TechTiles/Appliance" ]; then
+      if [ ! -z `grep -i "Type=MULTI" /etc/TechTiles/Appliance` ]; then
+         export ISMULTI=YES
+         if [ -z "$tid" ]; then
+            echo "Multi-tenant device - rerun with FMA_DIR set or use <-t tenant> parameter"
+            exit 4
+         fi
+         export FMA_DIR=/secure/tenant.$tid
+      fi
+   fi
+fi
+
+if [ ! -f "$FMA_DIR/conf/sysvars" ]; then
+   echo "ERROR: $FMA_DIR invalid tenant directory"
+   exit 8
+fi
+
+shopt -s nocasematch
+
+export LOG=$FMA_DIR/logs
+
+. $FMA_DIR/conf/sysvars
+
+if [ "$FMA_DORM" == "YES" ]; then
+   echo "System is dormant - exiting"
+   exit 0
+fi
+
+if [ ! -z "$JAVA_OPTS" ]; then
+   export JAVA_OPTS
+fi
+
+# If we have a local version of Java or Groovy, set it up
+
+if [ -d "/opt/groovy" ]; then
+   GDIR=`ls -d /opt/groovy/groovy-*`
+   export PATH=$GDIR/bin:$PATH
+   export GROOVY_HOME=$GDIR
+fi
+
+if [ -d "/opt/jre" ]; then
+   JDIR=`ls -d /opt/jre/jre*`
+   export PATH=$JDIR/bin:$PATH
+   export JAVA_HOME=$JDIR
+fi
+
+# Make sure the JMS broker is reachable 
+
+READY=0
+while [ $READY -eq 0 ]
+do
+   out=`$FMA_DIR/bin/VPNping.sh >> $LOG/VPNping.log 2>> $LOG/VPNping.log`
+   RC=$?
+   if [ "$RC" -ne "0" ]; then
+      echo "Waiting for broker and network [$RC] $out"
+      sleep 5
+   else
+      READY=1
+   fi
+done
+
+# Figure out what we're starting
+
+if [ $# -eq 0 ]; then 
+   LOGIN=yes
+   LOGOFF=yes
+   DB=yes
+   CONTROL=yes
+   ACTION=yes
+else
+   LOGIN=no
+   LOGOFF=no
+   DB=no
+   CONTROL=no
+   ACTION=no
+fi
+
+for I in $@
+do
+   i=`echo $I | tr '[:upper:]' '[:lower:]'`
+   if [ "$i" == "all" ]; then
+      LOGIN=yes
+      LOGOFF=yes
+      DB=yes
+      CONTROL=yes
+      ACTION=yes
+   fi
+   if [ "$i" == "login" ]; then
+      LOGIN=yes
+   fi
+   if [ "$i" == "logoff" ]; then
+      LOGOFF=yes
+   fi
+   if [ "$i" == "db" ]; then
+      DB=yes
+   fi
+   if [ "$i" == "control" ]; then
+      CONTROL=yes
+   fi
+   if [ "$i" == "action" ]; then
+      ACTION=yes
+   fi
+done
+
+# Now do it
+
+PIDFILE=$FMA_DIR/data
+cd $FMA_DIR/jms
+NOW=`/bin/date`
+SAVELOG=$FMA_DIR/bin/SaveLog
+
+if [ "$LOGIN" == "yes" ] && [ -f "Login.groovy" ]; then 
+   $SAVELOG Login.log
+   echo "Starting JMS Login Service on $NOW..." | tee $LOG/Login.log
+   groovy -cp ./lib/ac*.jar -DTenant=$TENANT Login.groovy >> $LOG/Login.log 2>> $LOG/Login.log&
+   PID=$!
+   echo "Login.groovy=$PID" > $PIDFILE/Login.pid
+   chmod 0666 $PIDFILE/Login.pid
+   echo "Login service is PID $PID"
+fi 
+
+if [ "$LOGOFF" == "yes" ] && [ -f "Logoff.groovy" ]; then 
+   $SAVELOG Logoff.log
+   echo "Starting JMS Logoff Service on $NOW..." | tee $LOG/Logoff.log
+   groovy -cp ./lib/ac*.jar -DTenant=$TENANT Logoff.groovy >> $LOG/Logoff.log 2>> $LOG/Logoff.log&
+   PID=$!
+   echo "Logoff.groovy=$PID" > $PIDFILE/Logoff.pid
+   chmod 0666 $PIDFILE/Logoff.pid
+   echo "Logoff service is PID $PID"
+fi 
+
+if [ "$DB" == "yes" ] && [ -f "DB.groovy" ]; then 
+   $SAVELOG DB.log
+   echo "Starting JMS Database Service on $NOW..." | tee $LOG/DB.log
+   x=$JAVA_OPTS
+   if [ ! -z "$JAVA_OPTD" ]; then
+       export JAVA_OPTS=$JAVA_OPTD  
+   fi
+   if [ -f "$FMA_DIR/jms/lib/artemis-jms-client-all-2.16.0.jar" ]; then 
+      groovy -cp 'lib/artemis-jms-client-all-2.16.0.jar:lib/mssql-jdbc-8.4.1.jre8.jar:lib/*' -DTenant=$TENANT DB.groovy >> $LOG/DB.log 2>&1 &
+   else
+      if [ -f "lib/mssql-jdbc-8.4.1.jre8.jar" ]; then
+         groovy -cp 'lib/ac*:lib/mssql-jdbc-8.4.1.jre8.jar:lib/*' -DTenant=$TENANT DB.groovy >> $LOG/DB.log 2>&1 &	   
+      else
+         groovy -cp 'lib/ac*:lib/*' -DTenant=$TENANT DB.groovy >> $LOG/DB.log 2>&1 &
+      fi
+   fi
+   PID=$!
+   export JAVA_OPTS=$x
+   echo "DB.groovy=$PID" > $PIDFILE/DB.pid
+   chmod 0666 $PIDFILE/DB.pid
+   echo "DB service is PID $PID"
+fi 
+
+if [ "$CONTROL" == "yes" ] && [ -f "Control.groovy" ]; then 
+   $SAVELOG Control.log
+   echo "Starting JMS Control Service on $NOW..." | tee $LOG/Control.log
+   groovy -cp ./lib/ac*.jar -DTenant=$TENANT Control.groovy >> $LOG/Control.log 2>> $LOG/Control.log&
+   PID=$!
+   echo "Control.groovy=$PID" > $PIDFILE/Control.pid
+   chmod 0666 $PIDFILE/Control.pid
+   echo "Control service is PID $PID"
+fi 
+
+if [ "$ACTION" == "yes" ] && [ -f "Action.groovy" ]; then
+   $SAVELOG Action.log
+   echo "Starting JMS Action Service on $NOW..." | tee $LOG/Action.log
+   groovy -cp ./lib/ac*.jar -DTenant=$TENANT Action.groovy >> $LOG/Action.log 2>> $LOG/Action.log&
+   PID=$!
+   echo "Action.groovy=$PID" > $PIDFILE/Action.pid
+   chmod 0666 $PIDFILE/Action.pid
+   echo "Action service is PID $PID"
+fi 
+
+exit 0

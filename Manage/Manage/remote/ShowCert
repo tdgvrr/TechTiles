@@ -1,0 +1,29 @@
+#!/bin/bash
+export FMA_DIR=/appliance
+CONF=/appliance/conf/sysvars
+
+if [ -f "/etc/TechTiles/Appliance" ]; then
+   if [ ! -z `grep -i "Type=MULTI" /etc/TechTiles/Appliance` ]; then
+      if [ -z "$1" ]; then
+         echo "ERROR: Missing Tenant ID"
+         exit 4
+      fi
+      CONF=/secure/tenant.$1/conf/sysvars
+      export FMA_DIR=/secure/tenant.$1
+      echo "Multi-tenant device - selecting tenant $1"
+   fi
+fi
+
+. $CONF
+
+if [ -z "$LDAPTLS_CACERT" ]; then
+   echo "No certificate configured - LDAP used, not LDAPS"
+   exit 4
+fi
+
+if [ -f "LDAPTLS_CACERT" ]; then
+   echo "WARNING: certificate configured, but not found [$LDAPTLS_CACERT]"
+   exit 4
+fi
+
+openssl x509 -in "$LDAPTLS_CACERT" -text

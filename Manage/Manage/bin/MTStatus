@@ -1,0 +1,14 @@
+#!/bin/bash
+
+echo "Enter a tenant ID configured on a multi-tenant device: (5 digits, greater than 01000)" 
+read tenant
+
+if [ -z "$tenant" ]; then
+   echo "ERROR: No Tenant supplied"
+   exit 8
+fi
+
+echo "MultiTenant Status for device with Tenant $tenant" 
+sudo $ROTMT $tenant "echo ::CMDSTART::;/mnt/shared/Manage/remote/MTStatus" | sed '0,/::CMDSTART::/d' 2> /dev/null
+exit 0
+

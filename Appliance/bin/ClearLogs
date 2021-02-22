@@ -1,0 +1,56 @@
+#!/bin/bash
+# 
+# Script that runs at reboot   
+#
+
+# Set install directory (default: /appliance)
+
+doLog() 
+{
+ i="$FMA_DIR/logs/$1"
+ o="$FMA_DIR/logs/archive/$1.$now.gz"
+
+ if [ -f "$i" ]; then
+    gzip -c $i > $o
+    rm -f $i 2> /dev/null
+ fi
+}
+
+if [ -z "$FMA_DIR" ]; then
+   export FMA_DIR=/appliance
+   if [ ! -d "$FMA_DIR" ]; then
+      x=`readlink -f $0`
+      x=`dirname $x`/..
+      export FMA_DIR=`readlink -f $x`
+   fi
+fi
+
+. $FMA_DIR/conf/sysvars
+
+vpn=/var/log/TechTiles/vpn.log
+log=$FMA_DIR/logs/ClearLog.log
+now=`/bin/date +"%d-%b-%Y@%H:%M:%S"`
+
+if [ -f "$vpn" ]; then
+   echo "$0 - reset VPN log $vpn" >> $log
+   cp $vpn $vpn.last 
+   echo "* Reinitialized $now *" > $vpn
+fi
+
+# Delete stuff older than 30 days ago
+
+echo "Deleting old archives" >> $log
+find $FMA_DIR/logs/archive -mtime +30 -exec rm {} \; >> $log 2>> $log
+
+echo "Clearing logs in $FMA_DIR at $now" >> $log
+
+doLog "Control.log" 
+doLog "CRONjob.log"
+doLog "DB.log"
+doLog "Login.log"
+doLog "Logoff.log"
+
+echo "$0 - complete $now" >> $log
+
+exit 0
+

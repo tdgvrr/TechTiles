@@ -1,0 +1,50 @@
+#!/bin/bash
+
+#
+# ListPDF.sh: Display structure of a PDF  
+#
+# This script helps you to understand the structure of an arbitrary PDF so that the commands
+# required by the PDF generator (MakePDF) are easy to build. 
+#
+# Syntax: 
+# 
+# ListPDF <PDF> 
+#
+# Where <PDF> is the file name of the PDF to be listed.  
+#
+# (c) 2016, TechTiles LLC - All Rights Reserved. 
+#
+# V1.0 - Sep2016: New [VRR]
+#
+
+DEBUG=0              # Set to "1" to get additional debug messages
+DIR="/opt/PDFbox"    # Install directory
+PDF=$1
+
+if [ ! -z "$TTDEBUG" ]; then
+   DEBUG=1
+fi
+
+cd $DIR             # Be sure we run in our install directory
+
+if [ -z "$PDF" ]; then
+   echo "ERROR: Missing source PDF (ListPDF <pdf file>)"
+   exit 4
+fi
+
+if [ ! -f "$PDF" ]; then
+   if [ -f "./source/$PDF" ]; then
+      PDF="./source/$PDF"
+   else
+      PDF="$DIR/source/$PDF"
+   fi
+   if [ ! -f "$PDF" ]; then
+      echo "ERROR: Source PDF $PDF does not exist"
+      exit 4
+   fi
+fi
+
+T=/tmp/ListPDF-$RANDOM.pdf 
+echo -e "list \nquit" | java -jar Populater.jar $PDF /dev/null
+
+exit 0

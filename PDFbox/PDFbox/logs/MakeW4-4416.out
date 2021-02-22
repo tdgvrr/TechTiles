@@ -1,0 +1,126 @@
+MAKEW4 request is: Format 20317 using 2018fw4-acro2.pdf with edit template 2018w4.template, email template MakeW4.template and output to pslowski@lufsd.org
+Resolve script commands...
+Connected - FM Database: jdbc:mysql://fmportal.crw7rmbndgfd.us-east-1.rds.amazonaws.com:13306/Forms
+Form 20317 is ##W4## submitted 2021-02-21 20:11:27.0
+Found these form variables:
+   action=W4
+   submitter-id=3354
+   EmployeeID=1101
+   submitter-name=PATRICIA SLOWSKI
+   submitter-role=SUPPORT STAFF
+   submitter-email=pslowski@lufsd.org
+   submitter-phone=631-226-6855
+   submitter-department=PTTA
+   submitter-location=ALBNY
+   created-date=2021-02-21 20:11:16
+   start-date=09/08/1999
+   end-date=2017-12-17
+   request-number=28312
+   FirstName=PATRICIA
+   MiddleName=A
+   LastName=SLOWSKI
+   SSN=090-52-6633
+   Street=565 PECAN STREET
+   City=LINDENHURST
+   State=NY
+   ZIP=11757
+   Status=Married but withhold at the higher single rate
+   DifferentLastName=No
+   Allowances=0
+   AdditionalAmount=35.00
+   Exempt=No
+   Signature=data:image/png;base64,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
+   EmployeeStartDate=09/08/1999
+   TenantID=00214
+   TenantName=Lindenhurst UFSD
+   TenantAddress=350 Daniel Street, Lindenhurst, NY 11757
+   TenantEIN=11-6001992
+   CalendarYear=2021
+Processing complete
+Get form signature (if any)...
+Connected - FM Database: jdbc:mysql://fmportal.crw7rmbndgfd.us-east-1.rds.amazonaws.com:13306/Forms
+Form 20317 is ##W4## submitted 2021-02-21 20:11:27.0
+Signature image written to /tmp/sig2407312679624146323.png [9310]
+Processing complete
+Building output PDF
+Input  PDF: ./source/2018fw4-acro2.pdf
+Output PDF: /tmp/MakeW4-15197.pdf
+ Signature: /tmp/sig2407312679624146323.jpg
+Document is 4 pages
+Enter Command: [list, set, sign, get, font, quit]
+#1: set Lastname = SLOWSKI
+Enter Command: [list, set, sign, get, font, quit]
+#2: set IsMarried = false
+Enter Command: [list, set, sign, get, font, quit]
+#3: set IsMarriedSingle = true
+No field found with name:IsMarriedSingle
+Enter Command: [list, set, sign, get, font, quit]
+#4: set IsSingle = false
+Enter Command: [list, set, sign, get, font, quit]
+#5: set NameDiffers = false
+Enter Command: [list, set, sign, get, font, quit]
+#6: set AddedAmount =   35.00
+Enter Command: [list, set, sign, get, font, quit]
+#7: set DateSigned = 21 February 2021
+Enter Command: [list, set, sign, get, font, quit]
+#8: set FirstName = PATRICIA A
+Enter Command: [list, set, sign, get, font, quit]
+#9: set SSN = 090-52-6633
+Enter Command: [list, set, sign, get, font, quit]
+#10: set StreetAddress = 565 PECAN STREET
+Enter Command: [list, set, sign, get, font, quit]
+#11: set CityStateZip = LINDENHURST, NY 11757
+Enter Command: [list, set, sign, get, font, quit]
+#12: set Allowances = 0
+Enter Command: [list, set, sign, get, font, quit]
+#13: set Exempt =
+Enter Command: [list, set, sign, get, font, quit]
+#14: font /Helv 8 Tf 0 g
+Default font: /Helv 8 Tf 0 g 
+Enter Command: [list, set, sign, get, font, quit]
+#15: set EmployerNameAddress = Lindenhurst UFSD, 350 Daniel Street, Lindenhurst, NY 11757
+Enter Command: [list, set, sign, get, font, quit]
+#16: set StartDate = 09/08/1999
+Enter Command: [list, set, sign, get, font, quit]
+#17: set EIN = 11-6001992
+Enter Command: [list, set, sign, get, font, quit]
+#18: sign #6
+Signature is 252 by 18
+Name:Signature_af_image
+    Page: 0
+    Coordinates: 188.947/73.5546 to 441.21/91.7944
+Image adjusted to 252 by 18
+Signature written
+Enter Command: [list, set, sign, get, font, quit]
+#19: quit
+Saving PDF to /tmp/MakeW4-15197.pdf
+Version was 1.6
+Complete
+Storing W4 in FM Database
+AppQueryW4: args [20317, /tmp/MakeW4-15197.pdf, , ]
+Connected - FM Database: jdbc:mysql://fmportal.crw7rmbndgfd.us-east-1.rds.amazonaws.com:13306/Forms
+Form 20317 is ##W4## submitted 2021-02-21 20:11:27.0
+File /tmp/MakeW4-15197.pdf is 173827 bytes, query length is 347803
+JMS response queue is temp-queue://ID:fm.techtiles.net-39681-1613938333130-1:1:1
+JMS consumer queue is ActiveMQMessageConsumer { value=ID:fm.techtiles.net-39681-1613938333130-1:1:1:1, started=true }
+cConn: ActiveMQConnection {id=ID:fm.techtiles.net-39681-1613938333130-1:1,clientId=ID:fm.techtiles.net-39681-1613938333130-0:1,started=true}
+cSess: ActiveMQSession {id=ID:fm.techtiles.net-39681-1613938333130-1:1:1,started=true}
+pConni: ActiveMQConnection {id=ID:fm.techtiles.net-39681-1613938333130-3:1,clientId=ID:fm.techtiles.net-39681-1613938333130-2:1,started=true}
+pSessi: ActiveMQSession {id=ID:fm.techtiles.net-39681-1613938333130-3:1:1,started=true}
+cBroker: BrokerInfo {commandId = 0, responseRequired = false, brokerId = ID:fm.techtiles.net-40576-1593273978853-0:2, brokerURL = tcp://fm.techtiles.net:61616, slaveBroker = false, masterBroker = false, faultTolerantConfiguration = false, networkConnection = false, duplexConnection = false, peerBrokerInfos = null, brokerName = localhost, connectionId = 0, brokerUploadUrl = null, networkProperties = null}
+pBroker: BrokerInfo {commandId = 0, responseRequired = false, brokerId = ID:fm.techtiles.net-40576-1593273978853-0:2, brokerURL = tcp://fm.techtiles.net:61616, slaveBroker = false, masterBroker = false, faultTolerantConfiguration = false, networkConnection = false, duplexConnection = false, peerBrokerInfos = null, brokerName = localhost, connectionId = 0, brokerUploadUrl = null, networkProperties = null}
+Sending query <db><operation>EXEC</operation><dbname>DEFAULT</dbname><encodedquery>declare+%40f+varbinary%28max%29
+Received 112 bytes in 1051msec.
+---Response Data---
+<DB_resp>
+<status>OK</status>
+<more>No</more>
+<startRow>0</startRow>
+<returnValue>false</returnValue></DB_resp>
+
+Status: OK
+More: No
+Query complete
+Sending /tmp/MakeW4-15197.pdf to pslowski@lufsd.org
+fm with W4
+Processing complete

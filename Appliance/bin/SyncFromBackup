@@ -1,0 +1,127 @@
+#!/bin/bash
+
+# Restore and synchronize important files
+
+IsIgnore () 
+{
+ IGNORE=0
+ 
+ # Ignore tenant-specific config files
+
+ echo $1 | grep -F -i "/appliance/conf" > /dev/null 2>&1
+ if [ "$?" -eq "0" ]; then
+     IGNORE=1
+     return
+ fi
+
+ # Ignore tenant-specific dynamic data
+
+ echo $1 | grep -F -i "/appliance/data" > /dev/null 2>&1
+ if [ "$?" -eq "0" ]; then
+     IGNORE=1
+     return
+ fi
+
+ # Ignore logfiles
+
+ echo $1 | grep -F -i ".log" > /dev/null 2>&1
+ if [ "$?" -eq "0" ]; then
+     IGNORE=1
+     return
+ fi
+
+ # Ignore PID files
+
+ echo $1 | grep -F -i ".pid" > /dev/null 2>&1
+ if [ "$?" -eq "0" ]; then
+     IGNORE=1
+     return
+ fi
+
+ # Ignore hidden files in the home directory
+
+ echo $1 | grep -F -i "/home/master/." > /dev/null 2>&1
+ if [ "$?" -eq "0" ]; then
+     IGNORE=1
+     return
+ fi
+
+}
+
+AutoUpdate () 
+{
+ UPDATE=0
+ 
+ # Allow updating /appliance/jms
+
+ echo $1 | grep -F -i "/appliance/jms" > /dev/null 2>&1
+ if [ "$?" -eq "0" ]; then
+     UPDATE=1
+     return
+ fi
+
+ # Allow updating /appliance/bin
+
+ echo $1 | grep -F -i "/appliance/bin" > /dev/null 2>&1
+ if [ "$?" -eq "0" ]; then
+     UPDATE=1
+     return
+ fi
+
+}
+
+NOW=`/bin/date +%F`
+TAR=$1
+DIR=$HOME/sync
+CHLOG=/changehistory
+
+if [ -z "$1" ]; then
+    echo "ERROR: Missing TAR file name" 
+    exit 4
+fi
+
+echo "TAR file is $TAR"
+
+mkdir -p $DIR
+
+echo "Restoring to $DIR..."
+cd $DIR 
+rm -rf $DIR/* 
+tar -xf $TAR 
+
+IFS=$'\n'
+for i in `find . -type f`; do
+  IsIgnore $i 
+  if [ "$IGNORE" -eq "1" ]; then
+     continue
+  fi 
+
+  diffmsg=`diff -q -b $i ${i:1} 2> /dev/null`
+  diffrc=$?
+  
+  if [ "$diffrc" -eq "1" ]; then
+      AutoUpdate $i
+      if [ "$UPDATE" -eq "1" ]; then
+          mkdir -p "$CHLOG"
+          now=`/bin/date +"%Y-%m-%d@%H:%M:%S"`
+          f=`basename $i` 
+          echo "Updating ${i:1}..."
+          cp --preserve ${i:1} "$CHLOG/$f.$now" 
+          cp --preserve $i ${i:1}
+      else
+          echo "WARNING: ${i:1} changed but not automatically updated - please review"
+      fi
+  fi
+
+  if [ "$diffrc" -eq "2" ]; then
+      echo "New file: $i"
+      newdir=`dirname ${i:1}`
+      if [ ! -d "$newdir" ]; then
+         mkdir -p $newdir
+      fi
+      cp --preserve $i ${i:1}
+  fi
+
+done
+
+exit 0

@@ -1,0 +1,23 @@
+ set topmostSubform[0].Page1[0].f1_01_0_[0]=${form.BoxA}  
+ set topmostSubform[0].Page1[0].f1_02_0_[0]=${form.BoxB}  
+ set topmostSubform[0].Page1[0].f1_03_0_[0]=${form.BoxC}  
+ set topmostSubform[0].Page1[0].f1_04_0_[0]=${form.BoxD}
+ set topmostSubform[0].Page1[0].f1_05_0_[0]=${form.BoxE}
+ set topmostSubform[0].Page1[0].f1_06_0_[0]=${form.BoxF}  
+ set topmostSubform[0].Page1[0].f1_07_0_[0]=${form.BoxG}  
+ set topmostSubform[0].Page1[0].f1_08_0_[0]=${form.TotalDependents}  
+ set topmostSubform[0].Page1[0].Line1[0].f1_09_0_[0]=${form.FirstName}  
+ set topmostSubform[0].Page1[0].Line1[0].f1_10_0_[0]=${form.LastName} 
+ set topmostSubform[0].Page1[0].Line1[0].f1_11_0_[0]=${form.StreetAddress} 
+ set topmostSubform[0].Page1[0].Line1[0].f1_12_0_[0]=${form.Town}, ${form.State} ${form.ZIP}
+ set topmostSubform[0].Page1[0].f1_13_0_[0]=${form.SSN}  
+ set topmostSubform[0].Page1[0].c1_01[0]=${form.Status == "Single"  ? "true" : "false"}  
+ set topmostSubform[0].Page1[0].c1_01[1]=${form.Status == "Married" ? "true" : "false"}
+ set topmostSubform[0].Page1[0].c1_01[2]=${form.Status == "MarriedSingleRate" ? "true" : "false"}
+ set topmostSubform[0].Page1[0].c1_02[0]=${form.LastNameDiffers == "Yes" ? "true" : "false"}
+ set topmostSubform[0].Page1[0].f1_14_0_[0]=${form.TotalDependents}
+ set topmostSubform[0].Page1[0].f1_15_0_[0]=${form.ExtraWithholding}
+ set topmostSubform[0].Page1[0].f1_16_0_[0]=${form.Exempt == "Yes" ? "Exempt" : "##SKIP##"}
+ set topmostSubform[0].Page1[0].f1_17_0_[0]=Employer Name/Address
+ set topmostSubform[0].Page1[0].f1_18_0_[0]=Office Code
+ set topmostSubform[0].Page1[0].f1_19_0_[0]=EIN

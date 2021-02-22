@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Save a copy of important system files
+
+NOW=`/bin/date +%F`
+TAR=/backup/System-$NOW.tar.gz
+
+tar -czf $TAR /home /appliance /etc 
+if [ "$BACKUP_ENCRYPT" = "NO" ]; then
+    echo "Warning: Backup not encrypted"
+else
+    gpg --yes -r "TechTiles, LLC" -e $TAR
+    rm $TAR
+fi
+
+exit 0

@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Dump a workflow approver rule table
+#
+
+if [ -f "/etc/TechTiles/sysvars" ]; then
+   . /etc/TechTiles/sysvars
+fi
+
+export TENANT TTDB TTDBPORT TTDBUSER TTDBPASS
+
+DEBUG=1                   # Set to "1" to get additional debug messages
+DIR="/opt/TTloadRules"    # Install directory
+LOG=$DIR/logs/DL-$$.out
+
+$DIR/DataList.groovy $@ 
+
+exit $RC
+

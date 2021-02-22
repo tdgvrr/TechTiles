@@ -1,0 +1,1 @@
+set "Childs Name" = ${xml?.form?.'grid-7'[1]?.StudentName?.text()}

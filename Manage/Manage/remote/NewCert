@@ -1,0 +1,67 @@
+#!/bin/bash
+
+CERT=/mnt/shared/certs
+CDIR=/appliance/conf
+SDIR=/secure
+CF=$CDIR/sysvars
+NOW=`/bin/date`
+
+EditConfig()
+{
+   cur=`grep -v "^#" $CF | grep -i "LDAPTLS_CACERT" | head -1 | cut -f 2- -d '='`
+   if [ -z "$cur" ]; then
+      echo "Certificate is unset in $CF"
+   else
+      echo -e "Old certificate is:\n$cur"
+   fi
+   
+   # Just insert at the end of the file
+   echo "export LDAPTLS_CACERT=$CDIR/T$TENANT.pem   # $NOW " >> $CF 
+   return
+}
+
+# Fixup the directories on multi-tenant devices
+
+if [ -f "/etc/TechTiles/Appliance" ]; then
+   echo "Multi-tenant device"
+   CDIR=$SDIR/tenant.$1/conf
+   CF=$CDIR/sysvars
+fi
+
+if [ ! -f "$CF" ]; then
+   echo "ERROR: Missing configuration file"
+   exit 4
+fi
+
+. $CF
+
+# Make sure we have the new certificate
+
+if [ ! -f "$CERT/T$TENANT.pem" ]; then
+   echo "ERROR: Certificate not found for tenant $TENANT"
+   exit 4
+fi
+
+# Ensure we have the latest code 
+
+if [ -f "/mnt/shared/latest/jms/Login.groovy" ]; then
+   diff /mnt/shared/latest/jms/Login.groovy $CDIR/../jms/Login.groovy > /dev/null 2>&1
+   if [ "$?" -ne "0" ]; then
+      echo "Updating login service"
+      sudo /mnt/shared/PatchFile jms/Login.groovy 
+   fi
+fi
+
+# Keep a local copy 
+
+cp $CERT/T$TENANT.pem $CDIR
+echo "Copied new cert to appliance"
+ 
+if [ "$LDAPTLS_CACERT" = "$CDIR/T$TENANT.pem" ]; then
+   echo "Current certificate updated in place"
+fi
+
+sudo /mnt/shared/PatchFile CHMOD 0777 "$CDIR/sysvars"
+EditConfig "$CDIR/T$TENANT.pem" 
+sudo /mnt/shared/PatchFile CHMOD 0644 "$CDIR/sysvars"
+

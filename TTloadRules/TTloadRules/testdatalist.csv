@@ -1,0 +1,45 @@
+Employee	Role	Building	Approver1	Approver2	Approver3	Notify1	Notify2	Notify3	Created	Modified
+ 	ADMIN	 	Mkruzynski@medinacsd.org	NONE	NONE	NONE	NONE	NONE	2021-01-28 11:55:18.0	2021-02-10 14:26:01.0
+ 	ADMIN	HS	Mkruzynski@medinacsd.org	NONE	NONE	BMichaud@medinacsd.org	lweader@medinacsd.org	NONE	2021-02-04 12:59:23.0	2021-02-10 14:26:01.0
+ 	ADMIN	MS	Mkruzynski@medinacsd.org	NONE	NONE	IWatts@medinacsd.org	lweader@medinacsd.org	NONE	2021-02-04 12:59:23.0	2021-02-10 14:26:01.0
+ 	ADMIN	OO	Mkruzynski@medinacsd.org	NONE	NONE	HAlbone@medinacsd.org	lweader@medinacsd.org	NONE	2021-02-04 12:59:23.0	2021-02-10 14:26:01.0
+ 	AIDES	BG	Rdennis@medinacsd.org	Mkruzynski@medinacsd.org	NONE	kHeschke@medinacsd.org	lweader@medinacsd.org	NONE	2021-01-28 11:55:21.0	2021-02-10 14:26:01.0
+ 	AIDES	HS	mcavanagh@medinacsd.org	Mkruzynski@medinacsd.org	NONE	BMichaud@medinacsd.org	lweader@medinacsd.org	NONE	2021-01-28 11:55:20.0	2021-02-10 14:26:01.0
+ 	AIDES	MS	Chughes@medinacsd.org	Mkruzynski@medinacsd.org	NONE	IWatts@medinacsd.org	lweader@medinacsd.org	NONE	2021-01-28 11:55:19.0	2021-02-10 14:26:01.0
+ 	AIDES	OO	Jwebber@medinacsd.org	Mkruzynski@medinacsd.org	NONE	HAlbone@medinacsd.org	lweader@medinacsd.org	NONE	2021-01-28 11:55:19.0	2021-02-10 14:26:01.0
+ 	BUS A	BG	Rdennis@medinacsd.org	Mkruzynski@medinacsd.org	NONE	kHeschke@medinacsd.org	lweader@medinacsd.org	NONE	2021-01-28 11:55:20.0	2021-02-10 14:26:01.0
+ 	BUS D	BG	Rdennis@medinacsd.org	Mkruzynski@medinacsd.org	NONE	kHeschke@medinacsd.org	lweader@medinacsd.org	NONE	2021-01-28 11:55:21.0	2021-02-10 14:26:01.0
+ 	CSEA	BG	Rdennis@medinacsd.org	Mkruzynski@medinacsd.org	NONE	NONE	NONE	NONE	2021-01-28 11:55:25.0	2021-02-10 14:26:01.0
+ 	CSEA	CO	mgraff@medinacsd.org	Mkruzynski@medinacsd.org	NONE	NONE	NONE	NONE	2021-01-28 11:55:22.0	2021-02-10 14:26:01.0
+ 	CSEA	CSE	ADiLaura@medinacsd.org	Rdennis@medinacsd.org	NONE	NONE	NONE	NONE	2021-01-28 11:55:21.0	2021-02-10 14:26:01.0
+ 	CSEA	HS	mcavanagh@medinacsd.org	Mkruzynski@medinacsd.org	NONE	BMichaud@medinacsd.org	lweader@medinacsd.org	NONE	2021-01-28 11:55:24.0	2021-02-10 14:26:01.0
+ 	CSEA	MAINT	gleuer@medinacsd.org	Mkruzynski@medinacsd.org	NONE	PPrentice@medinacsd.org	lweader@medinacsd.org	NONE	2021-01-28 11:55:23.0	2021-02-10 14:26:01.0
+ 	CSEA	MS	Chughes@medinacsd.org	Mkruzynski@medinacsd.org	NONE	IWatts@medinacsd.org	lweader@medinacsd.org	NONE	2021-01-28 11:55:23.0	2021-02-10 14:26:01.0
+ 	CSEA	OO	Jwebber@medinacsd.org	Mkruzynski@medinacsd.org	NONE	HAlbone@medinacsd.org	lweader@medinacsd.org	NONE	2021-01-28 11:55:22.0	2021-02-10 14:26:01.0
+ 	EMAIL	 	amoreno@medinacsd.org	Mgraff@medinacsd.org	Mkruzynski@medinacsd.org	NONE	NONE	NONE	2021-01-28 11:55:32.0	2021-02-10 14:26:01.0
+ 	MECHA	 	Rdennis@medinacsd.org	Mkruzynski@medinacsd.org	NONE	NONE	NONE	NONE	2021-01-28 11:55:25.0	2021-02-10 14:26:01.0
+ 	MONT	HS	mcavanagh@medinacsd.org	Mkruzynski@medinacsd.org	NONE	BMichaud@medinacsd.org	lweader@medinacsd.org	NONE	2021-01-28 11:55:27.0	2021-02-10 14:26:01.0
+ 	MONT	MS	Chughes@medinacsd.org	Mkruzynski@medinacsd.org	NONE	IWatts@medinacsd.org	lweader@medinacsd.org	NONE	2021-01-28 11:55:26.0	2021-02-10 14:26:01.0
+ 	MONT	OO	Jwebber@medinacsd.org	Mkruzynski@medinacsd.org	NONE	HAlbone@medinacsd.org	lweader@medinacsd.org	NONE	2021-01-28 11:55:26.0	2021-02-10 14:26:01.0
+ 	NURSE	HS	mcavanagh@medinacsd.org	Mkruzynski@medinacsd.org	NONE	BMichaud@medinacsd.org	lweader@medinacsd.org	NONE	2021-01-28 11:55:28.0	2021-02-10 14:26:01.0
+ 	NURSE	MS	Chughes@medinacsd.org	Mkruzynski@medinacsd.org	NONE	IWatts@medinacsd.org	lweader@medinacsd.org	NONE	2021-01-28 11:55:28.0	2021-02-10 14:26:01.0
+ 	NURSE	OO	Jwebber@medinacsd.org	Mkruzynski@medinacsd.org	NONE	HAlbone@medinacsd.org	lweader@medinacsd.org	NONE	2021-01-28 11:55:27.0	2021-02-10 14:26:01.0
+ 	PRINC	 	Mkruzynski@medinacsd.org	NONE	NONE	NONE	NONE	NONE	2021-01-28 11:55:29.0	2021-02-10 14:26:01.0
+ 	SECRE	 	Mkruzynski@medinacsd.org	NONE	NONE	NONE	NONE	NONE	2021-01-28 11:55:30.0	2021-02-10 14:26:01.0
+ 	SENIO	 	amoreno@medinacsd.org	Mgraff@medinacsd.org	Mkruzynski@medinacsd.org	NONE	NONE	NONE	2021-01-28 11:55:33.0	2021-02-10 14:26:01.0
+ 	TEACH	HS	mcavanagh@medinacsd.org	Mkruzynski@medinacsd.org	NONE	BMichaud@medinacsd.org	lweader@medinacsd.org	NONE	2021-01-28 11:55:31.0	2021-02-10 14:26:01.0
+ 	TEACH	MS	Chughes@medinacsd.org	Mkruzynski@medinacsd.org	NONE	IWatts@medinacsd.org	lweader@medinacsd.org	NONE	2021-01-28 11:55:31.0	2021-02-10 14:26:01.0
+ 	TEACH	OO	Jwebber@medinacsd.org	Mkruzynski@medinacsd.org	NONE	HAlbone@medinacsd.org	lweader@medinacsd.org	NONE	2021-01-28 11:55:30.0	2021-02-10 14:26:01.0
+ 	TECHN	 	amoreno@medinacsd.org	Mgraff@medinacsd.org	Mkruzynski@medinacsd.org	NONE	NONE	NONE	2021-01-28 11:55:32.0	2021-02-10 14:26:01.0
+ 	TREAS	 	mgraff@medinacsd.org	Mkruzynski@medinacsd.org	NONE	NONE	NONE	NONE	2021-01-28 11:55:33.0	2021-02-10 14:26:01.0
+amoreno@medinacsd.org	 	 	mgraff@medinacsd.org	Mkruzynski@medinacsd.org	NONE	NONE	NONE	NONE	2021-01-28 11:55:35.0	2021-02-10 14:26:01.0
+CAKing@medinacsd.org	 	 	Rdennis@medinacsd.org	Mkruzynski@medinacsd.org	NONE	kHeschke@medinacsd.org	lweader@medinacsd.org	IWatts@medinacsd.org	2021-02-10 14:35:08.0	2021-02-10 14:37:54.0
+Gleuer@medinacsd.org	 	 	mgraff@medinacsd.org	Mkruzynski@medinacsd.org	NONE	NONE	NONE	NONE	2021-01-28 11:55:34.0	2021-02-10 14:26:01.0
+JMundion@medinacsd.org	 	 	Rdennis@medinacsd.org	Mkruzynski@medinacsd.org	NONE	kHeschke@medinacsd.org	lweader@medinacsd.org	HAlbone@medinacsd.org	2021-02-10 14:35:09.0	2021-02-10 14:37:54.0
+lKropp@medinacsd.org	 	 	Rdennis@medinacsd.org	Mkruzynski@medinacsd.org	NONE	kHeschke@medinacsd.org	lweader@medinacsd.org	BMichaud@medinacsd.org	2021-02-10 14:35:07.0	2021-02-10 14:37:54.0
+mBennett@medinacsd.org	 	 	Rdennis@medinacsd.org	Mkruzynski@medinacsd.org	NONE	kHeschke@medinacsd.org	lweader@medinacsd.org	BMichaud@medinacsd.org	2021-02-10 14:35:07.0	2021-02-10 14:37:54.0
+Mkruzynski@medinacsd.org	 	 	Jkuhn@medinacsd.org	APawlaczyk@medinacsd.org	NONE	NONE	NONE	NONE	2021-01-28 11:55:35.0	2021-02-10 14:26:01.0
+MWebster@medinacsd.org	 	 	mcavanagh@medinacsd.org	Mkruzynski@medinacsd.org	NONE	BMichaud@medinacsd.org	lweader@medinacsd.org	Rdennis@medinacsd.org	2021-02-10 14:35:06.0	2021-02-10 14:37:54.0
+NJones@medinacsd.org	 	 	Rdennis@medinacsd.org	Mkruzynski@medinacsd.org	NONE	kHeschke@medinacsd.org	lweader@medinacsd.org	IWatts@medinacsd.org	2021-02-10 14:35:08.0	2021-02-10 14:37:54.0
+Rdennis@medinacsd.org	 	 	mgraff@medinacsd.org	Mkruzynski@medinacsd.org	NONE	NONE	NONE	NONE	2021-01-28 11:55:34.0	2021-02-10 14:26:01.0
+rkelley@medinacsd.org	 	 	Rdennis@medinacsd.org	Mkruzynski@medinacsd.org	NONE	kHeschke@medinacsd.org	lweader@medinacsd.org	BMichaud@medinacsd.org	2021-02-10 14:35:05.0	2021-02-10 14:37:54.0

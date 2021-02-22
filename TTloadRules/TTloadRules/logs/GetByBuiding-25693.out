@@ -1,0 +1,10 @@
+/opt/TTloadRules/GetApproverListByBuilding Starting  Wed Feb 17 14:47:33 EST 2021
+Command received: WorkflowT00266new @submitter-email=lkorba@aldenschools.org @RoleName=CONF @buildingcode=00
+Fetching items for @submitter-email=lkorba@aldenschools.org/@RoleName=CONF/@buildingcode=00 from WorkflowT00266new...
+TTGetList272: Fetch using @submitter-email=lkorba@aldenschools.org/@RoleName=CONF/@buildingcode=00 on WorkflowT00266new
+Connected - Database: jdbc:mysql://fmportal.crw7rmbndgfd.us-east-1.rds.amazonaws.com:13306/CustomerData
+No Approver4
+No Notify2
+No Notify3
+Result: Approver1=pkarpik@aldenschools.org;MSG=Approver rule #21 created 2020-10-19 13:06:30.0 modified 2020-10-19 13:12:15.0
+[0] Approver1=pkarpik@aldenschools.org;MSG=Approver rule #21 created 2020-10-19 13:06:30.0 modified 2020-10-19 13:12:15.0

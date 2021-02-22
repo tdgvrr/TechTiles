@@ -1,0 +1,64 @@
+#!/bin/bash
+
+#
+# Status: display all connected tenants 
+#
+
+LIST=/var/log/TechTiles/Appliance.lst
+PEM=/opt/TTutils/conf/Appliance.pem
+SSHOPT="-o UserKnownHostsFile=/dev/null -o ConnectTimeout=5"
+NUM=0
+
+echo "ApplianceStatus: List connected appliances" 
+
+if [ -f "$LIST" ]; then
+   echo -e "Format is: Tenant ID/Node name/Last Connect Time"
+   cat $LIST | cut -f 2- | sort -k 1,2
+   echo "Status complete - `wc -l $LIST | cut -f 1 -d ' '` appliances online"
+   exit 0
+fi
+
+# Get the subnets for our tunnels
+
+SUBNET2=`ifconfig tun0 | grep "inet addr:" | cut -f 2 -d ":" | cut -f 1-2 -d "."`
+SUBNET1=`ifconfig tun1 | grep "inet addr:" | cut -f 2 -d ":" | cut -f 1-2 -d "."`
+
+# Now, scan the OpenVPN status log to find connected clients
+
+C1=`grep $SUBNET1 /var/log/openvpn.status | cut -f 1 -d ","`
+if [ ! -z "$C1" ]; then
+   echo "Connections on primary VPN subnet" 
+   for i in `echo "$C1"` 
+   do
+     MSG=`echo "" | ssh -p 11022 -i $PEM $SSHOPT master@$i 2>/dev/null`
+     NODE=`echo "$MSG" | grep Node: | cut -f 2 -d ":"`
+     NODE=`echo $NODE`
+     TENANT=`echo "$MSG" | grep "Tenant ID:" | cut -f 2 -d ":" | cut -f 3 -d " "`
+     TENANT=`echo $TENANT`
+     if [[ $NODE = fmamt* ]]; then
+         TENANT=Multi
+     fi 
+     if [[ -z "$NODE" || -z "$TENANT" ]]; then
+         continue 
+     else
+         echo -e "Tenant:$TENANT\tNode:$NODE"
+         NUM=$((NUM + 1))
+     fi
+   done
+fi
+
+echo "Connections on alternate VPN subnet" 
+C2=`grep $SUBNET2 /var/log/openvpn1194.status | cut -f 1 -d ","`
+if [ ! -z "$C2" ]; then
+   for i in `echo "$C2"` 
+   do
+     MSG=`echo "" | ssh -p 11022 -i $PEM master@$i 2>/dev/null`
+     NODE=`echo "$MSG" | grep Node: | cut -f 2 -d ":"`
+     NODE=`echo $NODE`
+     TENANT=`echo "$MSG" | grep "Tenant ID:" | cut -f 2 -d ":" | cut -f 3 -d " "`
+     TENANT=`echo $TENANT`
+     echo -e "Tenant:$TENANT\tNode:$NODE" 
+   done
+fi
+
+echo "Status complete - $NUM appliances online"

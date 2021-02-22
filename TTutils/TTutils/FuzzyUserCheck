@@ -1,0 +1,24 @@
+#!/usr/bin/perl 
+
+use String::Approx qw(amatch);
+        my ($target) = @ARGV;
+        if (not defined $target) {
+           die "Missing target name\n";
+        }
+        my $result = "";
+
+        open(WORDS, '/etc/passwd') or die "Can't open /etc/passwd";
+               
+        while (<WORDS>) {
+            $_  = substr($_, 0, index($_, ":"));
+#           print "Check '$target' vs. '$_' \n";
+            if (abs(length($_) - length($target)) < 2)
+            {
+               $result = amatch($target, ['I10%', 'D10%', 'S10%']);
+               if ($result ne '0') 
+               {
+                  print $_;
+                  last;
+               }
+            }
+        }

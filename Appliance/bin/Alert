@@ -1,0 +1,54 @@
+#!/bin/bash
+
+# Alert: Send an alert to the Zabbix Server 
+
+LOG=/var/log/TechTiles/Alert.log
+ZSENDER=/usr/local/bin/zabbix_sender
+H=`hostname`
+SERVER=10.8.0.1
+ALERT="appliance.alert"
+PIPE=/dev/alerts
+
+if [ ! -f "$LOG" ]; then
+   echo "---Initialized `/bin/date`---" > $LOG
+fi
+
+echo "Alert: $@" >> $LOG
+
+if [ ! -f "$ZSENDER" ]; then 
+   echo "Alert: One-time install for zabbix-sender" >> $LOG
+   apt-get install -y zabbix-sender >> $LOG
+fi
+
+if [ -z "$1" ]; then
+   echo "Alert: Starting persistent alert service on $PIPE" >> $LOG
+   trap "rm -f $PIPE" EXIT
+   if [[ ! -p $PIPE ]]; then
+      mkfifo $PIPE
+      chmod u+w,o+w,g+w $PIPE
+   fi
+
+   while true
+   do
+       if read line <$PIPE; then
+          if [[ "$line" == 'quit' ]]; then
+              break
+          fi
+          echo "Alert: $line" >> $LOG
+          $ZSENDER -z $SERVER -p 10051 -s $H -k $ALERT -o "$line" >> $LOG 
+       fi
+   done
+
+   $ZSENDER -z $SERVER -p 10051 -s $H -k $ALERT -o "ALERT $PIPE now offline" >> $LOG 
+   echo "Alert: Reader exiting $PIPE" >> $LOG
+   rm -f $PIPE
+   exit 0
+fi
+
+if [ "$1" = "START" ]; then
+   nohup $0 >> $LOG 2>&1 &
+   exit 0
+fi
+
+$ZSENDER -z $SERVER -p 10051 -s $H -k $ALERT -o "$@" >> $LOG 
+exit 0 

@@ -1,0 +1,49 @@
+#!/bin/bash
+
+#
+# AlertServ: Central audit/alert recorder. 
+#
+# This script services the JMS queue "FM.ALERT.SERVICE", parsing and writing any messages 
+# it receives to a database table. 
+#
+# Database configuration data must be stored in /etc/TechTiles/sysvars for this to work. 
+#
+# (c) 2018, TechTiles LLC - All Rights Reserved. 
+#
+# V1.0 - Jan2018: New [VRR]
+#
+
+DIR=/opt/TTalerts
+if [ ! -d "$DIR" ]; then
+   DIR="."
+fi
+
+NOW=`date +%m-%d-%Y@%H:%M:%S`
+OUT=/var/log/TechTiles/AlertServ.log
+
+cd $DIR             # Be sure we run in our install directory
+
+# First, we bring in the TechTiles system configuration variables 
+
+if [ -f /etc/TechTiles/sysvars ]; then
+    . /etc/TechTiles/sysvars
+fi
+
+if [ -f ./sysvars ]; then 
+    . ./sysvars
+fi
+
+export TTDB TTDBPORT TTDBUSER TTDBPASS
+
+curr=`ps -ef | grep AlertHost.groovy | grep jvm`
+
+if [ "$?" -eq "0" ]; then
+   echo "A copy of $0 appears to already be running"
+   exit 4
+fi
+
+# Hand off to the Groovy script 
+
+groovy -cp 'lib/artem*:lib/*' AlertHost.groovy > $OUT 2>&1 &
+
+exit $? 

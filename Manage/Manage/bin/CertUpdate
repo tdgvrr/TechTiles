@@ -1,0 +1,75 @@
+#!/bin/bash
+
+echo "Enter Tenant ID: (5 digits)" 
+read tenant
+
+if [ -z "$tenant" ]; then
+   echo "ERROR: No Tenant supplied"
+   exit 8
+fi
+
+cert=""
+
+echo "WARNING: THIS FUNCTION IS EXPERIMENTAL"
+
+echo "The certificate must be in text form and be either CER or PEM format,"
+echo "as well as having valid BEGIN CERTIFICATE/END CERTIFICATE strings"
+echo "at the start and end of the file. If the certificate is in DER (binary)"
+echo "format IT MUST BE MANUALLY CONVERTED BEFORE PROCEEDING!"
+echo "You can convert a binary DER-encoded certificate with this command:"
+echo "openssl x509 -inform der -in <input cert file> -out <output cert file>"
+echo " " 
+echo "Enter certificate text (copy/paste, and press ENTER when complete)"
+while [[ "$cert" != *"END CERTIFICATE"* ]] 
+do
+   read -r certline
+   cert="$cert\n$certline" 
+   if [[ "$certline" = *"END CERTIFICATE"* ]]; then
+      break
+   fi
+done
+
+if [ -z "$cert" ]; then
+   echo "ERROR: Invalid certificate"
+   echo -e "$cert" 
+   exit 4 
+fi
+
+CF="/tmp/T$tenant.pem"
+echo -e "$cert" > "/tmp/T$tenant.cer"
+openssl x509 -in "/tmp/T$tenant.cer" -outform pem -out "$CF" 
+echo "LDAPS Certificate for Tenant $tenant is:" 
+openssl x509 -in $CF -text 
+if [ "$?" -ne "0" ]; then
+   echo "ERROR: Certificate is not valid - see errors above"
+   echo -e "$cert"
+   exit 4
+fi
+
+if [ -f "/shared/certs/T$tenant.pem" ]; then
+   diff "/shared/certs/T$tenant.pem" "$CF" > /dev/null 2>&1
+   if [ "$?" -ne "0" ]; then 
+      echo "WARNING: A certificate exists for tenant $tenant" 
+      echo "Replace the current certificate? (YES or NO): "
+      read ans
+      if [[ "${ans,,}" != *"y"* ]]; then
+         echo "Current certificate left intact"
+         exit 4
+      fi
+   else
+      echo "Same certificate already exists - reinstalling..."
+   fi
+fi
+
+cp "$CF" "/shared/certs/T$tenant.pem" 
+
+echo "Update LDAPS Certificate - Tenant $tenant" 
+if [ "$tenant" -gt "00999" ]; then 
+   sudo $ROTMT $tenant "echo ::CMDSTART::;/mnt/shared/Manage/remote/NewCert $tenant" | sed '0,/::CMDSTART::/d' 2> /dev/null
+else
+   sudo $ROT $tenant "echo ::CMDSTART::;/mnt/shared/Manage/remote/NewCert $tenant" | sed '0,/::CMDSTART::/d' 2> /dev/null
+fi
+echo "Saved new certificate - restart to activate"
+
+exit 0
+

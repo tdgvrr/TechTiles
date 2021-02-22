@@ -1,0 +1,8 @@
+/opt/TTloadRules/GetApproverListByBuilding Starting  Wed Feb 17 12:02:13 EST 2021
+Command received: WorkflowT00272new @submitter-email=dstephenson@medinacsd.org @RoleName=AIDES @buildingcode=MS
+Fetching items for @submitter-email=dstephenson@medinacsd.org/@RoleName=AIDES/@buildingcode=MS from WorkflowT00272new...
+TTGetList272: Fetch using @submitter-email=dstephenson@medinacsd.org/@RoleName=AIDES/@buildingcode=MS on WorkflowT00272new
+Connected - Database: jdbc:mysql://fmportal.crw7rmbndgfd.us-east-1.rds.amazonaws.com:13306/CustomerData
+No Approver4
+Result: Approver1=Chughes@medinacsd.org;Approver2=Mkruzynski@medinacsd.org;Notify1=IWatts@medinacsd.org;Notify2=lweader@medinacsd.org;MSG=Approver rule #3 created 2021-01-28 11:55:19.0 modified 2021-02-10 14:26:01.0
+[0] Approver1=Chughes@medinacsd.org;Approver2=Mkruzynski@medinacsd.org;Notify1=IWatts@medinacsd.org;Notify2=lweader@medinacsd.org;MSG=Approver rule #3 created 2021-01-28 11:55:19.0 modified 2021-02-10 14:26:01.0

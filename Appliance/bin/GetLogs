@@ -1,0 +1,64 @@
+#!/bin/bash
+# 
+# Script that fetches "X" lines from one or more log files   
+# 
+# Syntax:
+# 
+# GetLogs -n nnnn Log1 Log2 Log3 ...
+# 
+# Where
+# 
+# nnn  = Number of lines per logfile. Default is 10 lines per file.
+# Log* = Name of logfile to read. Default is to read all in the "logs" directory.
+#
+
+
+doLog() 
+{
+ i="$FMA_DIR/logs/$2"
+
+ echo ">>>START $2<<<"
+ tail -n $1 $i 
+ echo ">>>END $2<<<"
+}
+
+if [ -z "$FMA_DIR" ]; then
+   export x=`readlink -f $0`
+   export x=`dirname $x`/..
+   export FMA_DIR=`readlink -f $x`
+fi
+
+. $FMA_DIR/conf/sysvars
+
+LINES=10 
+
+while getopts "n:" opt; do
+ case $opt in
+  n)
+    LINES=$OPTARG
+  ;;
+  \?)
+    echo "GetLogs: Invalid option: -$OPTARG" >&2
+  ;;
+ esac
+done
+
+shift $((OPTIND-1))
+if [ "$#" = "0" ]; then
+  doLog $LINES "DB.log"
+  doLog $LINES "Login.log"
+  doLog $LINES "Logoff.log"
+  doLog $LINES "Control.log" 
+else
+ for i in $@; do
+     echo $i | grep \.log$
+     if [ "$?" = "0" ]; then
+         T=$i
+     else
+         T=$i.log
+     fi
+     doLog $LINES $T
+done
+fi 
+
+exit 0

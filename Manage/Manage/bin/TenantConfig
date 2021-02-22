@@ -1,0 +1,22 @@
+#!/bin/bash
+
+echo "Enter Tenant ID: (5 digits)" 
+read tenant
+
+if [ -z "$tenant" ]; then
+   echo "ERROR: No Tenant supplied"
+   exit 8
+fi
+
+if [ "$tenant" = "00000" ]; then
+   echo "ERROR: Tenant 00000 is under construction - no configuration available"
+   exit 8
+fi
+
+if [ "$tenant" -gt "00999" ]; then
+   sudo $ROTMT $tenant "echo ::CMDSTART::;sudo /mnt/shared/cfg_reportMT $tenant" | sed '0,/::CMDSTART::/d' 2> /dev/null
+else
+   sudo $ROT $tenant "echo ::CMDSTART::;sudo /mnt/shared/cfg_report" | sed '0,/::CMDSTART::/d' 2> /dev/null
+fi
+exit 0
+

@@ -1,0 +1,80 @@
+#!/bin/bash
+
+LOG=~/PingLDAP-$$
+DEBUG="-d 9"
+if [ "$1" != "debug" ]; then
+   DEBUG=""
+fi
+
+export FMA_DIR=/appliance
+CONF=/appliance/conf/sysvars
+IsLDAPS=0
+
+if [ -f "/etc/TechTiles/Appliance" ]; then
+   if [ ! -z `grep -i "Type=MULTI" /etc/TechTiles/Appliance` ]; then
+      if [ -z "$1" ]; then
+         echo "ERROR: Missing Tenant ID"
+	 exit 4
+      fi
+      export FMA_DIR=/secure/tenant.$1
+      CONF=$FMA_DIR/conf/sysvars
+      echo "Multi-tenant device - selecting tenant $1"
+   fi	   
+fi
+
+. $CONF
+
+if [ ! -z "$AUTH_LDAPS" ]; then
+   IsLDAPS=1
+fi
+
+if [ ! -z "$LDAPTLS_CACERT" ]; then
+   IsLDAPS=1
+fi
+
+echo "PingLDAP for Tenant $TENANT"
+echo "LDAP Host: $AUTH_HOST"
+echo "System Account: $AUTH_USER"
+echo "System Password: $AUTH_PASS"
+echo "System Domain: $AUTH_DOMAIN"
+echo "Base DN: $AUTH_DN"
+if [ "$IsLDAPS" -eq "0" ]; then
+   echo "Protocol = LDAP"
+else
+   echo "Protocol = LDAPS"
+   echo "Configured Certificate"
+   cat $LDAPTLS_CACERT
+fi
+
+echo "Attempting to PING $AUTH_HOST..."
+ping -c 1 -W 3 $AUTH_HOST
+echo "Ping complete"
+
+echo "Attempting LDAP info query on $AUTH_HOST..."
+
+echo "curl --max-time 5 ldap://$AUTH_HOST" > $LOG 2>&1
+curl --max-time 5 ldap://$AUTH_HOST >> $LOG 2>&1
+echo "LDAP Base query complete" >> $LOG 2>&1
+
+echo "Fetching LDAP Server Certs..." >> $LOG 2>&1
+openssl s_client -connect "$AUTH_HOST:636" -showcerts < /dev/null >> $LOG 2>&1 
+
+
+echo "Attempting LDAP BIND with system account..." >> $LOG
+if [ "$IsLDAPS" -eq "0" ]; then
+   echo "---LDAP Command---" >> $LOG
+   echo "ldapsearch -LLL -v $DEBUG -x -H ldap://$AUTH_HOST -D $AUTH_USER@$AUTH_DOMAIN -w $AUTH_PASS -b $AUTH_DN (samaccountname=$AUTH_USER)" >> $LOG
+   ldapsearch -LLL -v $DEBUG -x -H "ldap://$AUTH_HOST" -D "$AUTH_USER@$AUTH_DOMAIN" -w "$AUTH_PASS" -b "$AUTH_DN" "(samaccountname=$AUTH_USER)" >> $LOG 2>&1
+   RC=$?
+   echo "---LDAP RC $RC---" >> $LOG
+else
+   echo "---LDAPS Command---" >> $LOG
+   echo "ldapsearch -LLL $DEBUG -x -H ldaps://$AUTH_HOST -D $AUTH_USER@$AUTH_DOMAIN -w $AUTH_PASS -b $AUTH_DN (samaccountname=$AUTH_USER)" >> $LOG
+   ldapsearch -LLL -v $DEBUG -x -H "ldaps://$AUTH_HOST" -D "$AUTH_USER@$AUTH_DOMAIN" -w "$AUTH_PASS" -b "$AUTH_DN" "(samaccountname=$AUTH_USER)" >> $LOG 2>&1
+   RC=$?
+   echo "---LDAP RC $RC---" >> $LOG
+fi
+
+cat $LOG
+rm $LOG
+exit

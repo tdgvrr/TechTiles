@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# Different path for single/multi-tenant devices
+
+if [ -f "/etc/TechTiles/Appliance" ]; then
+   if [ ! -z `grep -i "Type=MULTI" /etc/TechTiles/Appliance` ]; then
+      echo "Multi-tenant device - network is shared across tenants"
+      for i in `ip -s -o link | cut -f 2 -d ':' | grep -v lo | grep -v tun`; 
+          do
+	     echo "---Network interface $i"
+	     ifconfig $i
+          done
+      exit 0
+   fi	   
+fi
+
+IF=`cat /proc/net/dev | grep ^e | cut -f 1 -d ":"`
+if [ -z "$IF" ]; then
+  IF=eth0
+fi
+
+ifconfig $IF
+
+

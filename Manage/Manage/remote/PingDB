@@ -1,0 +1,95 @@
+#!/bin/bash
+#
+# "Ping" the database configuration. 
+#
+# PingDB tenant 
+# 
+export FMA_DIR=/appliance
+CONF=/appliance/conf/sysvars
+DBCONN=/mnt/shared/latest/jms/DbConn.groovy
+
+if [ ! -f "$DBCONN" ]; then
+   echo "ERROR: Missing file - downlevel system"
+   exit 4
+fi
+
+if [ -f "/etc/TechTiles/Appliance" ]; then
+   if [ ! -z `grep -i "Type=MULTI" /etc/TechTiles/Appliance` ]; then
+      if [ -z "$1" ]; then
+         echo "ERROR: Missing Tenant ID"
+	 exit 4
+      fi
+      CONF=/secure/tenant.$1/conf/sysvars
+      export FMA_DIR=/secure/tenant.$1
+      echo "Multi-tenant device - selecting tenant $1"
+   fi	   
+fi
+
+. $CONF
+
+if [ -z "$JMS_DBHOST" ]; then 
+   echo "ERROR - no host configured"
+   exit 4
+fi
+
+echo "PingDB for Tenant $TENANT"
+echo "DB Host:   $JMS_DBHOST"
+echo "DB Port:   $JMS_DBPORT"
+echo "DB Schema: $JMS_DBSCHEMA" 
+echo "DB User:   $JMS_DBUSER" 
+echo "DB Pass:   $JMS_DBPASS" 
+echo "Attempting to PING $JMS_DBHOST..."
+ping -c 1 -W 3 $JMS_DBHOST
+echo "Ping complete (note that failure isn't necessarily an error)"
+
+echo "Check nVision database connectivity"  
+groovy $DBCONN "$JMS_DBHOST" "$JMS_DBPORT" "$JMS_DBSCHEMA" "$JMS_DBUSER" "$JMS_DBPASS" 2> /dev/null
+if [ "$?" -gt "0" ]; then
+   echo "ERROR: Can't connect to nVision Database" 
+   exit 8
+else
+   echo "OKAY: nVision Database service responding"   
+fi
+
+TP=`ls $FMA_DIR/conf | grep -vi timepiece.db. | grep -i timepiece.db` 
+if [ ! -z "$TP" ]; then
+  echo "Check Timepiece database connectivity" 
+  TP=$FMA_DIR/conf/$TP
+  TPDBHOST=`grep -v "^#" $TP | grep -i dbhost   | cut -f 2 -d '='`   
+  TPDBPORT=`grep -v "^#" $TP | grep -i dbport   | cut -f 2 -d '='`   
+  TPDBNAME=`grep -v "^#" $TP | grep -i dbschema | cut -f 2 -d '='`   
+  TPDBUSER=`grep -v "^#" $TP | grep -i dbuser   | cut -f 2 -d '='`   
+  TPDBPASS=`grep -v "^#" $TP | grep -i dbpass   | cut -f 2 -d '='`   
+  if [ -z "$TPDBHOST" ]; then
+     echo "No timepiece host configured"
+     exit 4
+  fi
+
+  echo "DB Host:   $TPDBHOST"
+  echo "DB Port:   $TPDBPORT"
+  echo "DB Schema: $TPDBNAME" 
+  echo "DB User:   $TPDBUSER" 
+  echo "DB Pass:   $TPDBPASS" 
+  
+  echo "Attempting to PING $TPDBHOST..."
+  ping -c 1 -W 3 $TPDBHOST
+  echo "Ping complete (note that failure isn't necessarily an error)"
+
+  if [ -z "$TPDBUSER" ]; then
+     TPDBUSER=$JMS_DBUSER
+  fi 
+  if [ -z "$TPDBPASS" ]; then
+     TPDBPASS=$JMS_DBPASS
+  fi 
+
+  groovy $DBCONN "$TPDBHOST" "$TPDBPORT" "$TPDBNAME" "$TPDBUSER" "$TPDBPASS" 2> /dev/null
+  if [ "$?" -gt "0" ]; then
+     echo "FAIL: Can't connect to Timepiece Database" 
+     exit 8
+  else
+     echo "OKAY: Timepiece Database service responding"    
+  fi
+fi
+
+exit 0
+

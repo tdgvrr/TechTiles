@@ -1,0 +1,16 @@
+#!bin/bash
+
+EXE=/usr/local/bin/wetty
+KEY=/opt/TTutils/conf/wetty.key
+PEM=/opt/TTutils/conf/wetty.pem
+
+if [ ! -f "$EXE" ]; then 
+   echo "ERROR: executable not found at $EXE"
+   exit 4
+fi
+
+# Note: Options are stored at /etc/init/wetty.conf
+
+service wetty restart
+
+

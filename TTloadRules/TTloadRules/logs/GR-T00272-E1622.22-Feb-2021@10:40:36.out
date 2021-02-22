@@ -1,0 +1,34 @@
+GetRole: 00272 @EmployeeID=1622 @submitter-role=Unavailable [EID=1622]
+AppQuery args [00272, SELECT, DEFAULT, exec [SSP].[p_RoleMembership_Select] @EmployeeID=1622]
+JMS response queue is temp-queue://ID:fm.techtiles.net-42408-1614008444492-1:1:1
+JMS consumer queue is ActiveMQMessageConsumer { value=ID:fm.techtiles.net-42408-1614008444492-1:1:1:1, started=true }
+cConn: ActiveMQConnection {id=ID:fm.techtiles.net-42408-1614008444492-1:1,clientId=ID:fm.techtiles.net-42408-1614008444492-0:1,started=true}
+cSess: ActiveMQSession {id=ID:fm.techtiles.net-42408-1614008444492-1:1:1,started=true}
+pConni: ActiveMQConnection {id=ID:fm.techtiles.net-42408-1614008444492-3:1,clientId=ID:fm.techtiles.net-42408-1614008444492-2:1,started=true}
+pSessi: ActiveMQSession {id=ID:fm.techtiles.net-42408-1614008444492-3:1:1,started=true}
+cBroker: BrokerInfo {commandId = 0, responseRequired = false, brokerId = ID:fm.techtiles.net-40576-1593273978853-0:2, brokerURL = tcp://fm.techtiles.net:61616, slaveBroker = false, masterBroker = false, faultTolerantConfiguration = false, networkConnection = false, duplexConnection = false, peerBrokerInfos = null, brokerName = localhost, connectionId = 0, brokerUploadUrl = null, networkProperties = null}
+pBroker: BrokerInfo {commandId = 0, responseRequired = false, brokerId = ID:fm.techtiles.net-40576-1593273978853-0:2, brokerURL = tcp://fm.techtiles.net:61616, slaveBroker = false, masterBroker = false, faultTolerantConfiguration = false, networkConnection = false, duplexConnection = false, peerBrokerInfos = null, brokerName = localhost, connectionId = 0, brokerUploadUrl = null, networkProperties = null}
+Sending query <db><operation>SELECT</operation><dbname>DEFAULT</dbname><encodedquery>exec+%5BSSP%5D.%5Bp_RoleMembership_Select%5D+%40EmployeeID%3D1622</encodedquery></db>
+Received 439 bytes in 353msec.
+---Response Data---
+<DB_resp>
+<status>OK</status>
+<more>No</more>
+<startRow>0</startRow>
+<colCount>3</colCount>
+<col-0 name='EmployeeID' type='int' nullable='0' autoincrement='true' />
+<col-1 name='RoleID' type='int' nullable='0' autoincrement='true' />
+<col-2 name='RoleName' type='varchar' nullable='0' autoincrement='false' />
+<rowCount>1</rowCount>
+<row>
+  <EmployeeID>1622</EmployeeID>
+  <RoleID>5</RoleID>
+  <RoleName>BUS+A</RoleName>
+</row>
+</DB_resp>
+
+Status: OK
+More: No
+Query returns 3 columns
+Query returns 1 rows
+Query complete

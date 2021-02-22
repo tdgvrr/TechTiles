@@ -1,0 +1,4 @@
+master  ALL = (root)    NOPASSWD: /mnt/shared/PatchFile
+master  ALL = (root)    NOPASSWD: /mnt/shared/Fixup
+master  ALL = (root)    NOPASSWD: /mnt/shared/cfg_report
+master  ALL = (root)    NOPASSWD: /mnt/shared/cfg_reportMT

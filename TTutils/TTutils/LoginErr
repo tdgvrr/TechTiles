@@ -1,0 +1,88 @@
+#!/bin/bash
+
+LOG=/var/log/TechTiles/LoginErr.log
+BL1=/opt/TTutils/conf/ipsum.txt
+BL2=/opt/TTutils/conf/banlist.txt
+NL=/opt/TTutils/conf/ttbl.txt
+DROP=/opt/TTutils/DropIP 
+FUZM=/opt/TTutils/FuzzyUserCheck 
+
+
+# Check if a string is an IP address
+
+function IsIp()
+{
+    if [ -z "$1" ]; then
+       return 1
+    fi
+
+    local  ip=$1
+    local  stat=1
+
+    if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+        OIFS=$IFS
+        IFS='.'
+        ip=($ip)
+        IFS=$OIFS
+        [[ ${ip[0]} -le 255 && ${ip[1]} -le 255 \
+            && ${ip[2]} -le 255 && ${ip[3]} -le 255 ]]
+        stat=$?
+    fi
+    return $stat
+}
+
+# Return the IP address from the full message line 
+
+GetIP()
+{
+  IP=`echo "$@" | awk -F' '  '{print $NF}'`
+  IsIp $IP
+  if [ "$?" -eq "1" ]; then
+     echo "ERROR - Not an IP address $IP" >> $LOG
+     IP=""
+  fi
+  return
+}
+
+MSG="$@"
+MSG=`echo "${MSG//[$'\t\r\n']}"` 
+echo "LoginErr: $MSG" >> $LOG
+
+GetIP "$MSG"
+
+if [ -z "$IP" ]; then
+   exit 0
+fi
+
+if [ -f "$BL1" ]; then 
+   grep "$IP" $BL1 $BL2 > /dev/null
+   if [ "$?" -eq "0" ]; then 
+      echo "INFO: $IP in blacklist" >> $LOG
+      exit 0
+   fi
+fi
+
+# Get the user name out of the original message
+
+echo "WARN: $IP NOT in blacklist" >> $LOG 
+
+U=`echo "$@" | sed -n 's/.* Invalid user \([^ ]*\).*/\1/p'`
+
+if [ -z "$U" ]; then
+   echo "WARN: Can't isolate username in message" >> $LOG
+   exit 0
+fi
+
+C=`$FUZM $U`
+if [ -z "$C" ]; then
+   echo "WARN: User $U is not a fuzzy match of any user" >> $LOG
+else
+   echo "INFO: User $U is similar to $C" >> $LOG
+fi
+
+echo "$IP        # `/bin/date`"   >> $NL 
+sort -uo $NL $NL
+$DROP $IP >> $LOG
+
+exit 0
+

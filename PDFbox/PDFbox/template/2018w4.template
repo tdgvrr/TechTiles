@@ -1,0 +1,19 @@
+ set Lastname = ${form.LastName}
+ set IsMarried = ${form.Status == "Married" ? "true" : "false"}
+ set IsMarriedSingle = ${form.Status.contains("but") ? "true" : "false"}
+ set IsSingle = ${form.Status == "Single" ? "true" : "false"}
+ set NameDiffers = ${form.DifferentLastName == "Yes" ? "true" : "false"}
+ set AddedAmount = ${"  " + form.AdditionalAmount}
+ set DateSigned = ${ new Date().format('dd MMMM yyyy') }
+ set FirstName = ${form.FirstName + " " + (!form.MiddleName || form.MiddleName == "" ? " " : form.MiddleName)}
+ set SSN = ${form.SSN}
+ set StreetAddress = ${form.Street}
+ set CityStateZip = ${form.City + ", " + form.State + " " + form.ZIP}
+ set Allowances = ${form.Allowances}
+ set Exempt = ${form.Exempt == "Yes" ? "Exempt" : " "}
+ font /Helv 8 Tf 0 g
+ set EmployerNameAddress = ${form.TenantName + ", " + form.TenantAddress}
+ set StartDate = ${form.EmployeeStartDate}
+ set EIN = ${form.TenantEIN}
+ sign #6
+ quit

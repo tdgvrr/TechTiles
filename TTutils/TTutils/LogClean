@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# Daily log cleanup
+
+find /var/log/tomcat7      -type f -mtime +5 -exec rm {} \;
+find /opt/TTstatus/logs    -type f -mtime +5 -exec rm {} \;
+find /opt/TTlist/logs      -type f -mtime +5 -exec rm {} \;
+find /opt/TTloadRules/logs -type f -mtime +5 -exec rm {} \;
+find /opt/TTcal/logs       -type f -mtime +5 -exec rm {} \;
+find /opt/TTreminders/logs -type f -mtime +5 -exec rm {} \;
+find /opt/PDFbox/logs      -type f -mtime +5 -exec rm {} \;
+find /opt/mule/*/logs      -type f -mtime +5 -exec rm {} \;
+find /shared/temp          -type f -mtime +10 -name "SET*" -exec rm {} \;
+find /var/log/apache2      -type f -name "*.gz" -mtime +10 -exec rm {} \;

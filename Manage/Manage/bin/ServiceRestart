@@ -1,0 +1,25 @@
+#!/bin/bash
+
+echo "Enter Tenant ID: (5 digits)" 
+read tenant
+
+if [ -z "$tenant" ]; then
+   echo "ERROR: No Tenant supplied"
+   exit 8
+fi
+
+echo "Enter name of service to restart: (Control, DB, Login, Logoff)"
+read service
+
+echo "Restarting $service Service on Tenant $tenant" 
+echo "NOTE: Ignore JVM warnings associated with 'An illegal reflective access operation has occurred'" 
+echo "NOTE: These are harmless known issues with the Groovy scripting language"
+
+if [[ "$tenant" > "00999" ]]; then
+  sudo $ROTMT $tenant "echo ::CMDSTART::;sudo /mnt/shared/PatchFile RESTART $service $tenant" | sed '0,/::CMDSTART::/d' 2> /dev/null 
+else
+  sudo $ROT $tenant "echo ::CMDSTART::;sudo /mnt/shared/PatchFile RESTART $service $tenant" | sed '0,/::CMDSTART::/d' 2> /dev/null
+fi
+
+exit 0
+

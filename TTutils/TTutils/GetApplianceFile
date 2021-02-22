@@ -1,0 +1,70 @@
+#!/bin/bash
+
+#
+# GetApplianceFile: Fetch a file from a given Tenant appliance 
+#
+# Usage is: 
+#
+#         GetApplianceFile <tenant-id> <file> <local> 
+#
+# Where:
+# <tenant-id> is the five-digit tenant ID 
+# <file>      is the remote file on the appliance  
+# <local>     is a local file to recieve the transfer  
+#
+
+LOG=/var/log/TechTiles/GetApplianceFile.log
+PEM=/opt/TTutils/conf/Appliance.pem  
+LIST=/var/log/TechTiles/Appliance.lst
+SSHOPT="-q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+
+echo "GetApplianceFile: $@" >> $LOG
+ 
+if [ -z "$1" ]; then 
+   echo "ERROR: No tenant ID" | tee -a $LOG
+   exit 8
+fi
+if [ -z "$2" ]; then 
+   echo "ERROR: No remote pathname" | tee -a $LOG
+   exit 8
+fi
+if [ -z "$3" ]; then 
+   echo "ERROR: No local pathname" | tee -a $LOG
+   exit 8
+fi
+
+if [ "$EUID" != "0" ]; then
+   echo "Not running with correct privileges" | tee -a $LOG
+   exit 8
+fi
+
+echo "Connecting to tenant $1" | tee -a $LOG
+
+# Handle multi-tenant users
+
+if [ "$1" -gt "00999" ]; then
+   TID=`expr $1 - 1000`
+   TID=`expr $TID / 20` 
+   TID=`expr $TID + 1` 
+   T=fmamt0$TID 
+   if [ -f "$LIST" ]; then
+      IP=`grep "Node:$T" $LIST | cut -f 1`
+   else 
+      echo "Can't get Multi-Tenant network address for tenant $1 on $T" | tee -a $LOG
+   fi
+else
+   if [ -f "$LIST" ]; then
+      IP=`grep "Tenant:$1" $LIST | cut -f 1`
+   else
+      echo "No network address found for Tenant $1" | tee -a $LOG 
+   fi
+fi
+
+if [ -z "$IP" ]; then
+   echo "GetApplianceFile: ERROR - appliance for tenant $1 not online" | tee -a $LOG
+   exit 8
+fi
+
+echo "get -p $2 $3" | sftp -q -P 11022 -i $PEM $SSHOPT master@$IP >> $LOG 2>&1
+
+exit $?

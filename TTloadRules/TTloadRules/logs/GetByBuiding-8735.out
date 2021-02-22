@@ -1,0 +1,10 @@
+/opt/TTloadRules/GetApproverListByBuilding Starting  Tue Feb 16 09:28:26 EST 2021
+Command received: WorkflowT00248 @submitter-email=lsherich@bethlehemschools.org @submitter-role=TEC8S @buildingcode=HS
+Fetching items for @submitter-email=lsherich@bethlehemschools.org/@submitter-role=TEC8S/@buildingcode=HS from WorkflowT00248...
+TTGetList272: Fetch using @submitter-email=lsherich@bethlehemschools.org/@submitter-role=TEC8S/@buildingcode=HS on WorkflowT00248
+Connected - Database: jdbc:mysql://fmportal.crw7rmbndgfd.us-east-1.rds.amazonaws.com:13306/CustomerData
+No Approver3
+No Approver4
+No Notify3
+Result: Approver1=rnardelli@bethlehemschools.org;Approver2=tmckay@bethlehemschools.org;MSG=Approver rule #2 created 2020-11-12 16:16:23.0 modified 2020-11-12 16:17:22.0
+[0] Approver1=rnardelli@bethlehemschools.org;Approver2=tmckay@bethlehemschools.org;MSG=Approver rule #2 created 2020-11-12 16:16:23.0 modified 2020-11-12 16:17:22.0

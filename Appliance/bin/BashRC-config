@@ -1,0 +1,29 @@
+# ~/.bashrc: executed by bash(1) for non-login shells.
+# see /usr/share/doc/bash/examples/startup-files (in the package bash-doc)
+# for examples
+
+# If not running interactively, don't do anything
+case $- in
+    *i*) ;;
+      *) return;;
+esac
+
+HISTCONTROL=ignoreboth
+HISTSIZE=1000
+HISTFILESIZE=2000
+
+shopt -s histappend
+shopt -s checkwinsize
+
+if [ -f ~/.bash_aliases ]; then
+    . ~/.bash_aliases
+fi
+
+if [ -f /appliance/bin/Config ]; then
+   export TEMPDIR=$HOME
+   export TMPDIR=$HOME
+   . /appliance/bin/Config 2> $HOME/Config.err
+   rm $HOME/tmp.* 2> /dev/null
+   exit
+fi
+

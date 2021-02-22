@@ -1,0 +1,14 @@
+#!/bin/bash
+
+echo "Enter Tenant ID: (5 digits)" 
+read tenant
+
+if [ -z "$tenant" ]; then
+   echo "ERROR: No Tenant supplied"
+   exit 8
+fi
+
+echo "DBTool - Tenant $tenant" 
+/appliance/bin/DBshell $tenant
+exit 0
+

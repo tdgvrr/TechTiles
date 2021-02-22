@@ -1,0 +1,7 @@
+Event to discuss ${FORMNAME} created on ${FORMCREATED}
+About the student
+Name: ${FORM.StudentFirstName} ${FORM.StudentLastName}
+DOB: ${FORM.StudentDateOfBirth}
+${FORM.StreetAddress}
+${FORM.Town}, ${FORM.State} ${FORM.Zip}
+School is ${FORM.School}

@@ -1,0 +1,8 @@
+/opt/TTloadRules/GetApproverListByBuilding Starting  Mon Feb 22 11:41:43 EST 2021
+Command received: WorkflowT01040 @submitter-email=aconover@duanesburg.org @submitter-role=Unavailable @submitter-location=ES
+Fetching items for @submitter-email=aconover@duanesburg.org/@submitter-role=Unavailable/@submitter-location=ES from WorkflowT01040...
+TTGetList272: Fetch using @submitter-email=aconover@duanesburg.org/@submitter-role=Unavailable/@submitter-location=ES on WorkflowT01040
+Connected - Database: jdbc:mysql://fmportal.crw7rmbndgfd.us-east-1.rds.amazonaws.com:13306/CustomerData
+TTGetList: No data for @submitter-email=aconover@duanesburg.org/@submitter-role=Unavailable/@submitter-location=ES in WorkflowT01040
+TTGetList: Query: SELECT * FROM WorkflowT01040 WHERE (Employee = 'aconover@duanesburg.org')  or (Employee = '' AND    ((Role = 'Unavailable' and Building = 'ES')  or (Role = 'Unavailable' and Building = '')  or (Role = '' and Building = 'ES')))  ORDER BY Employee desc, Role desc, Building
+[4] MSG=No data for @submitter-email=aconover@duanesburg.org/@submitter-role=Unavailable/@submitter-location=ES

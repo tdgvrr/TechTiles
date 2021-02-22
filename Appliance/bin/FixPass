@@ -1,0 +1,23 @@
+#! /bin/bash
+
+# Ensure the password for the "setup" user stays intact
+
+LOG=/var/log/TechTiles/SetAdmin.log
+
+if [ -f "/etc/TechTiles/Appliance" ]; then
+   if [ ! -z `grep -i Multi=1 /etc/TechTiles/Appliance` ];then 
+      echo "Skipping local setup password admin on multi-tenant appliance" >> $LOG
+      exit 0
+   fi
+fi
+
+FMA_DIR=/appliance
+if [ -f "$FMA_DIR/conf/AdminPass" ]; then
+   echo "Resetting local setup account" >> $LOG 
+   P=`cat $FMA_DIR/conf/AdminPass`
+   echo -e "$P\n$P" | passwd setup >> $LOG 2>&1
+else
+   echo "ERROR - $FMA_DIR/conf/AdminPass not found" >> $LOG
+fi
+
+exit 0

@@ -1,0 +1,20 @@
+# 
+# Script to Ping a JMS service 
+#
+
+# Must have install directory (default: /appliance)
+
+if [ -z "$FMA_DIR" ]; then
+   export x=`readlink -f $0`
+   export x=`dirname $x`/..
+   export FMA_DIR=`readlink -f $x`
+fi
+
+. $FMA_DIR/conf/sysvars
+
+cd $FMA_DIR/jms
+
+groovy -cp ./lib/ac*.jar Shell.groovy $@
+
+exit 0
+ 

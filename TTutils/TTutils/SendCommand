@@ -1,0 +1,73 @@
+#!/bin/bash
+
+#
+# SendCommand: Run a command on a particular tenant
+#
+# Usage is: 
+#
+#         SendCommmand <tenant-id> <command>
+#
+# Where <tenant-id> is the five-digit tenant ID 
+#       <command>   is a shell command
+#
+
+DIR=/opt/TTutils             # Install Directory
+ROOT=/shared/latest          # root of file depot
+LIST=/var/log/TechTiles/Appliance.lst
+PEM=$DIR/conf/Appliance.pem  # Private key to login
+CACHE=$DIR/data/Status.cache
+MAXAGE=900
+SSHOPT="-o UserKnownHostsFile=/dev/null"
+
+if [ -z "$1" ]; then 
+   echo "ERROR: No tenant ID"
+   exit 4
+fi
+
+if [ -z "$2" ]; then
+   echo "ERROR: No command"
+   exit 8
+fi
+
+if [ "$EUID" != "0" ]; then
+   echo "Not running with root privileges"
+   exit 12
+fi
+
+echo "Connecting to tenant $1"
+
+# First, we check the status maintained by VPN
+
+if [ -f "$LIST" ]; then
+   IP=`cat /var/log/TechTiles/Appliance.lst | grep "Tenant:$1" | cut -f 1`
+   if [ ! -z "$IP" ]; then
+      echo "$2" | ssh -i $PEM -p 11022 -E ~/SSH.log -q $SSHOPT master@$IP 
+      exit $?
+   fi
+fi
+
+IP=`/tenants/shared/appliance/bin/CommandShell $1 GetIP 2> /dev/null` 
+if [ -z "$IP" ]; then
+   
+   # The Status script can be slow, so we have a cached version
+
+   AGE=$(echo $(( `date +%s` - `stat -L --format %Y $CACHE` )))
+   if [ "$AGE" -lt "$MAXAGE" ]; then
+      echo "Using cached status"
+      IP=`cat $CACHE  | grep "Tenant:$1" | cut -f 2 -d ":" | cut -f 1` 
+      if [ -z "$IP" ]; then
+         IP=`$DIR/Status | grep "Tenant:$1" | cut -f 2 -d ":" | cut -f 1` 
+      fi
+   else
+      IP=`$DIR/Status | grep "Tenant:$1" | cut -f 2 -d ":" | cut -f 1` 
+   fi
+fi
+if [ -z "$IP" ]; then
+   echo "ERROR: Tenant $1 not found"
+   exit 4
+fi
+
+echo "$2" | ssh -i $PEM -p 11022 -E ~/SSH.log -q $SSHOPT master@$IP 
+
+exit $?
+

@@ -1,0 +1,10 @@
+/opt/TTloadRules/GetApproverListByBuilding Starting  Fri Feb 19 10:00:58 EST 2021
+Command received: WorkflowT01040 @submitter-email=jrivenburg@duanesburg.org @submitter-role=ADMIN @submitter-location=CO
+Fetching items for @submitter-email=jrivenburg@duanesburg.org/@submitter-role=ADMIN/@submitter-location=CO from WorkflowT01040...
+TTGetList272: Fetch using @submitter-email=jrivenburg@duanesburg.org/@submitter-role=ADMIN/@submitter-location=CO on WorkflowT01040
+Connected - Database: jdbc:mysql://fmportal.crw7rmbndgfd.us-east-1.rds.amazonaws.com:13306/CustomerData
+No Approver3
+No Approver4
+No Notify4
+Result: Approver1=jniedermeier@duanesburg.org;Notify1=jniedermeier@duanesburg.org;Notify2=klancto@duanesburg.org;MSG=Approver rule #14 created 2020-11-24 16:48:55.0 modified 2020-11-24 16:50:55.0
+[0] Approver1=jniedermeier@duanesburg.org;Notify1=jniedermeier@duanesburg.org;Notify2=klancto@duanesburg.org;MSG=Approver rule #14 created 2020-11-24 16:48:55.0 modified 2020-11-24 16:50:55.0

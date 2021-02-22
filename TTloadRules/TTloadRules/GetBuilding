@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# Fetches a building code string from a given tenant and employee
+# 
+# GetBuilding <tenant> <employee> <default>
+#
+# <tenant> is a five-digit tenant ID (00202, for instance)
+# <employee> is a string of the form "@EmployeeID=nnnnn"
+# <default> an optional default value if no building code found
+
+if [[ -z "$1" || -z "$2" ]]; then
+   echo "ERROR: Missing parameters"
+   exit 4
+fi
+
+EID=`echo "$2" | cut -f 2 -d '='`
+NOW=`/bin/date +%d-%b-%Y@%T`
+LOG=/opt/TTloadRules/logs/GB-T$1-E$EID.$NOW.out 
+AQ=/tenants/shared/appliance/jms/Appquery
+
+echo "GetBuilding: $* [EID=$EID]" > $LOG 
+
+Q="SELECT buildingcode FROM positionbuilding pb, building b WHERE b.buildingid = pb.buildingid AND pb.defaultflag = 1 AND pb.positionid = (SELECT positionid FROM appointment WHERE employeeid=$EID AND primaryflag = 1)"
+
+cd `dirname $AQ` 
+
+if [ "$3" == "" ]; then
+   $AQ "$1" "SELECT" "DEFAULT" "$Q" 2>> $LOG
+   exit 0
+fi
+ 
+val=`$AQ "$1" "SELECT" "DEFAULT" "$Q" 2>> $LOG` 
+if [[ -z "$val" || "$val" == "NULL" ]]; then
+   echo "buildingcode=$3"
+else
+   echo "$val"
+fi
+
+exit 0 
+ 

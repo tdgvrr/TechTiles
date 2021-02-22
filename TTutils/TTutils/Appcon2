@@ -1,0 +1,53 @@
+#!/bin/bash
+
+#
+# Appcon: Connect to a given Tenant appliance 
+#
+# Usage is: 
+#
+#         Appcon <tenant-id> 
+#
+# Where <tenant-id> is the five-digit tenant ID 
+#
+
+DIR=/opt/TTutils             # Install Directory
+PEM=$DIR/conf/Appliance.pem  # Private key to login
+CACHE=$DIR/data/Status.cache
+MAXAGE=900
+SSHOPT="-o UserKnownHostsFile=/dev/null"
+
+if [ -z "$1" ]; then 
+   echo "ERROR: No tenant ID"
+   exit 8
+fi
+
+if [ "$EUID" != "0" ]; then
+   echo "Not running with root privileges"
+   exit 8
+fi
+
+echo "Connecting to tenant $1"
+
+# The Status script can be slow, so we have a cached version
+
+AGE=$(echo $(( `date +%s` - `stat -L --format %Y $CACHE` )))
+if [ "$AGE" -lt "$MAXAGE" ]; then
+   echo "Using cached status"
+   IP=`cat $CACHE  | grep "Tenant:$1" | cut -f 2 -d ":" | cut -f 1` 
+   if [ -z "$IP" ]; then
+      IP=`$DIR/Status | grep "Tenant:$1" | cut -f 2 -d ":" | cut -f 1` 
+   fi
+else
+   IP=`$DIR/Status | grep "Tenant:$1" | cut -f 2 -d ":" | cut -f 1` 
+fi
+
+if [ -z "$IP" ]; then
+   echo "ERROR: Tenant $1 not found"
+   exit 4
+fi
+
+echo "SSH Connecting to Tenant $1 on IP $IP..."
+ssh -p 11022 -i $PEM $SSHOPT master@$IP
+
+exit $?
+

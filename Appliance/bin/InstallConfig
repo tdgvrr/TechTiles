@@ -1,0 +1,276 @@
+#!/bin/bash
+
+# This is the "privileged" part of the Config process...
+# It runs on system reboot and with root privileges to take
+# any of the requested configuration changes and populate 
+# them into their true homes, including network settings
+# and so forth. 
+#
+# V1.0 - 02Jan2019 - New [VRR]
+
+SETTINGS=~setup/settings.req
+LOG=/appliance/logs/Installer.log
+FEDIT=/appliance/jms/FileEdit.groovy
+NOW=`/bin/date +%Y-%m-%d@%H:%M:%S`
+export FMA_DIR=/appliance
+shopt -s nocasematch
+
+UpdateVar()
+{
+   # Syntax is UpdateVar <file> <keyword> <new_value>
+   
+   file="$1"
+   kwd="$2"
+   val="$3"
+
+   if [ -z "$file" ]; then
+      echo "WARNING: No file given" >> $LOG
+      return
+   fi
+
+   if [ -z "$kwd" ]; then
+      echo "WARNING: No keyword given" >> $LOG
+      return
+   fi
+
+   if [ -z "$val" ]; then
+      echo "WARNING: No value specified" >> $LOG
+      return
+   fi
+
+   if [ ! -f "$file" ]; then
+      echo "WARNING: File $file doesn't exist" >> $LOG
+      return
+   fi
+
+   if [ ${#val} -gt 128 ]; then
+      echo "WARNING: Variable too long at $val" >> $LOG
+      return
+   fi
+
+   if [[ "$file" == *"sysvars"* ]]; then
+      $FEDIT -q "B" -a -c '#' -f "$file" -k "$kwd" -v "$val" -p "export"
+      echo "Update complete for $file - $kwd now $val" >> $LOG
+      return
+   fi 
+
+   if [[ "$file" == *"timepiece"* ]]; then
+      $FEDIT -a -c '#' -f "$file" -k "$kwd" -v "$val" 
+      echo "Update complete for $file - $kwd now $val" >> $LOG
+      return
+   fi 
+   
+   echo "ERROR - Don't know how to edit $file" >> $LOG
+   return
+}
+
+# For now, just exit if we have a multi-tenant appliance
+
+if [ -f "/etc/TechTiles/Appliance"]; then
+   t=`grep -i "Type=Multi" /etc/TechTiles/Appliance`
+   if [ ! -z "$t" ]; then
+      echo "ERROR: InstallConfig not currently supported on multi-tenant appliances"
+      exit 0
+   fi
+fi
+
+echo "---InstallConfig: Started at $NOW---" >> $LOG
+
+# Check for a problem in the original config file 
+
+if [ -f "/appliance/conf/sysvars" ]; then
+   grep "FMA_DIR" /appliance/conf/sysvars > /dev/null 2>&1
+   if [ "$?" -eq "0" ]; then
+      echo "Fixup FMA_DIR in SYSVARS" >> $LOG
+      cat /appliance/conf/sysvars >> $LOG
+      ex -s -c "%s/FMA_DIR/FMA_FIXED/g" -c 'wq' /appliance/conf/sysvars
+      echo "---After---" >> $LOG
+      cat /appliance/conf/sysvars >> $LOG
+   fi
+fi
+
+
+if [ ! -f "$SETTINGS" ]; then
+   echo "No pending configuration changes - exiting" >> $LOG
+   exit 0 
+fi
+
+echo "Request file contains:" >> $LOG
+cat $SETTINGS >> $LOG
+if [ -d "/etc/TechTiles" ]; then
+   cp $SETTINGS /etc/TechTiles/CurrentConfig
+fi
+
+i=`ls $FMA_DIR/conf | grep -i "timepiece.db$"`
+if [ -z "$i" ]; then
+   cp $FMA_DIR/conf/timepiece.template $FMA_DIR/conf/timepiece.DB
+   tp=$FMA_DIR/conf/timepiece.DB
+   maketp=1
+else
+   tp=$FMA_DIR/conf/$i
+   maketp=0
+fi 
+
+# Save a copy of the key config files
+
+if [ ! -d "$FMA_DIR/backup" ]; then
+   mkdir -p $FMA_DIR/backup 
+fi
+cp $SETTINGS $FMA_DIR/backup/settings.$NOW
+cp $FMA_DIR/conf/sysvars $FMA_DIR/backup/sysvars.$NOW
+if [ -f "$tp" ]; then
+   cp $tp $FMA_DIR/backup/timepiece.$NOW
+fi
+
+IsNet=0
+IFS=$'\n'
+
+for i in `grep -v "^#" $SETTINGS | grep '=' `
+do
+   k=`echo "$i" | cut -f 1 -d '='`
+   v=`echo "$i" | cut -f 2- -d '='`
+   echo "Process $k -> $v [$i]" >> $LOG
+ 
+   if [[ "$v" == *"@UNCHANGED@"* ]]; then
+      echo "$k is unchanged - skipping" >> $LOG
+      continue
+   fi
+
+   case "$k" in
+    NVDBHOST)
+       UpdateVar $FMA_DIR/conf/sysvars "JMS_DBHOST" "$v" 
+    ;;
+
+    NVDBPORT)
+       UpdateVar $FMA_DIR/conf/sysvars "JMS_DBPORT" "$v" 
+    ;;
+
+    NVDBUSER)
+       UpdateVar $FMA_DIR/conf/sysvars "JMS_DBUSER" "$v" 
+    ;;
+
+    NVDBPASS)
+       UpdateVar $FMA_DIR/conf/sysvars "JMS_DBPASS" "$v" 
+    ;;
+
+    NVDBNAME)
+       UpdateVar $FMA_DIR/conf/sysvars "JMS_DBSCHEMA" "$v" 
+    ;;
+
+    TPDBHOST)
+       UpdateVar $tp "dbhost" "$v" 
+       if [ -z "$v" ]; then
+          TP=NONE
+       fi
+    ;;
+
+    TPDBPORT)
+       UpdateVar $tp "dbport" "$v" 
+    ;;
+
+    TPDBUSER)
+       UpdateVar $tp "dbuser" "$v" 
+    ;;
+
+    TPDBPASS)
+       UpdateVar $tp "dbpass" "$v" 
+    ;;
+
+    TPDBNAME)
+       UpdateVar $tp "dbschema" "$v" 
+    ;;
+
+    LDAPHOST)
+       UpdateVar $FMA_DIR/conf/sysvars "AUTH_HOST" "$v" 
+    ;;
+
+    LDAPUSER)
+       UpdateVar $FMA_DIR/conf/sysvars "AUTH_USER" "$v" 
+    ;;
+
+    LDAPPASS)
+       UpdateVar $FMA_DIR/conf/sysvars "AUTH_PASS" "$v" 
+    ;;
+
+    LDAPBASE)
+       UpdateVar $FMA_DIR/conf/sysvars "AUTH_DN" "$v" 
+    ;;
+
+    LDAPDOMN)
+       UpdateVar $FMA_DIR/conf/sysvars "AUTH_DOMAIN" "$v" 
+    ;;
+
+    LDAPDEFD)
+       UpdateVar $FMA_DIR/conf/sysvars "AUTH_DEFDMN" "$v" 
+    ;;
+
+    NET*)
+      echo "Network change: $k = $v (deferred)" >> $LOG
+      IsNet=1
+      if [ ! -z "$v" ]; then  
+         export $k="$v"
+      fi
+    ;;
+
+    *)
+      echo "WARNING: Unknown setting file request at $k ($v)" >> $LOG
+    ;;
+  esac   
+done
+
+# A few special cases: 
+# 1) Deleting an existing timepiece configuration
+# 2) Network settings change to/from DHCP
+
+if [ "$TP" = "NONE" ]; then
+   # This means the DB was displayed and erased or left blank
+   echo "No Timepiece database configured" >> $LOG
+   if [ -f "$tp" ]; then
+      echo "Removing Timepiece database definitions" >> $LOG
+      cp $tp $FMA_DIR/backup/Timepiece.DB.$NOW 
+      rm $tp 
+   fi 
+fi
+
+# If the Timepiece information is only partially entered, remove it
+
+grep -v '^#' "$tp" | grep "%DB" > /dev/null 2>&1
+if [ "$?" -eq "0" ]; then
+   echo "WARNING Partial/no Timepiece DB configuration in $tp - removing" >> $LOG
+   cp $tp $FMA_DIR/backup/Timepiece.DB-partial.$NOW 
+   rm "$tp"
+fi
+
+if [ "$IsNet" = "1" ]; then
+   # This means at least one network parameter was found
+   if [ "$NETDHCP" = "YES" ]; then 
+      echo "Setting DHCP configuration..." >> $LOG   
+      cp $FMA_DIR/conf/dhcp.template /etc/network/interfaces 
+   else
+      echo "Setting static IP configuration..." >> $LOG   
+      $FMA_DIR/bin/cfg_static --ip "$NETIP" --gateway "$NETGW" --mask "$NETMASK" --dns1 "$NETDNS1" --dns2 "$NETDNS2" --dns3 "$NETDNS3" --dns4 "$NETDNS4" >> $LOG
+   fi
+fi
+
+# Finalize it all 
+
+echo "Original request file is now $FMA_DIR/backup/settings.$NOW" >> $LOG
+mv $SETTINGS "$FMA_DIR/backup/settings.$NOW"
+
+grep -i "\#export.*.DORM" $FMA_DIR/conf/sysvars > /dev/null
+if [ "$?" -eq "1" ]; then
+   echo "Activating configuration" >> $LOG
+   grep -v "^export.*.FMA_DORM" $FMA_DIR/conf/sysvars > $FMA_DIR/conf/sysvars.tmp
+   echo "#export FMA_DORM=YES" >> $FMA_DIR/conf/sysvars.tmp
+   mv $FMA_DIR/conf/sysvars.tmp $FMA_DIR/conf/sysvars
+   echo "Final SYSVARS" >> $LOG
+   cat $FMA_DIR/conf/sysvars >> $LOG
+fi
+
+echo "Rebooting to finalize changes" >> $LOG 
+echo "---Installer complete---" >> $LOG
+
+sync
+# umount /mnt/shared 2> /dev/null
+# /sbin/reboot 
+

@@ -1,0 +1,10 @@
+#
+# Configuration settings for accessing the Timepiece database
+#
+dbtype   = sqlserver
+dbhost   = %DBHOST
+dbport   = %DBPORT
+dbschema = %DBSCHEMA
+dbuser   = SSPPortal
+dbpass   = 5rEchuTE
+dbdrvr   = com.microsoft.sqlserver.jdbc.SQLServerDriver

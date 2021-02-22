@@ -1,0 +1,115 @@
+#!/bin/bash
+
+#
+# TTreminders: Send reminders to any users not responding to an approval request. 
+#
+# This script checks for pending approvals, and if they've been active too long, 
+# it sends a message to the approver ro remind him to either Approve or Reject the request.
+#
+# Syntax: 
+# 
+# TTreminders -t <tenant-id> -a <min-age> -o <max-age> -c <email-cc> -d
+#
+# Where: 
+#
+#    - tenant-id          ID of the tenant data to use
+#    - min-age            Only process approvals at least this old
+#    - max-age            Don't process approvals older than this  
+#    - email-cc           An email address that gets "CC'ed" on every message
+#
+# -d turns on debugging. No email will be sent to users and debugging info will be produced. 
+#
+# Database configuration data must be stored in /etc/TechTiles/sysvars for this to work. 
+#
+# (c) 2018, TechTiles LLC - All Rights Reserved. 
+#
+# V1.0 - Jan2018: New [VRR]
+#
+
+DEBUG=0                  # Set to "1" to get additional debug messages
+DIR="/opt/TTreminders"   # Install directory
+if [ ! -d "$DIR" ]; then
+   DIR="."
+fi
+
+NOW=`date +%m-%d-%Y@%H:%M:%S`
+STDERR=$DIR/logs/TTreminders-$NOW.out
+TEN=""
+MIN=1 
+MAX=30
+
+if [ ! -z "$TTDEBUG" ]; then
+   DEBUG=1
+fi
+
+cd $DIR             # Be sure we run in our install directory
+
+# First, we bring in the TechTiles system configuration variables 
+
+if [ -f /etc/TechTiles/sysvars ]; then
+    . /etc/TechTiles/sysvars
+fi
+
+if [ -f ./sysvars ]; then 
+    . ./sysvars
+fi
+
+export TTDB TTDBPORT TTDBUSER TTDBPASS
+
+# Process the command line options
+
+while getopts "t:a:o:c:hd" opt; do
+   case $opt in
+   d)
+     DEBUG=1
+   ;;
+   a)
+     MIN=$OPTARG
+   ;;
+   o)
+     MAX=$OPTARG
+   ;;
+   c)
+     CCID=$OPTARG
+   ;;
+   t)
+     TEN=$OPTARG
+   ;;
+   h)
+     echo "$0 -t <tenant-id> -a <min-age> -o <max-age> -c <email-CC>"
+     exit 1
+   ;;
+   \?)
+     echo "Invalid option: -$OPTARG"
+     exit 4
+   ;;
+   :)
+     echo "Option -$OPTARG missing argument"
+     exit 4
+   ;;
+   esac
+done
+
+if [ -z "$TEN" ]; then
+    echo "ERROR: Missing Tenant ID (-t <tenant-id>)"
+    exit 4
+fi
+
+if [ -z "$MIN" ]; then
+   MIN=1
+fi
+
+if [ -z "$MAX" ]; then
+   MAX=30
+fi
+
+if [ "$DEBUG" = "1" ]; then
+   export TTDEBUG=YES
+fi
+
+echo "TTreminders: Tenant $TEN minimum age $MIN and maximum age $MAX"
+
+# Hand off to the Groovy script 
+
+$DIR/TTreminders.groovy $TEN $MIN $MAX $CCID >> $STDERR 2>&1
+exit $? 

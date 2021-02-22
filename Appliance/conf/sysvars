@@ -1,0 +1,45 @@
+#
+# These are environment variables containing per-tenant config data
+#
+
+export TENANT=00200  
+export AUTH=LDAP
+export AUTH_HOST= 
+export AUTH_USER=
+export AUTH_PASS=
+export AUTH_DN=
+export AUTH_DOMAIN=
+export AUTH_DEFDMN=
+
+# Uncomment to have Login with LDAPS and the cert below
+
+#export LDAPTLS_CACERT=/appliance/conf/????.pem
+
+# JMS Queue Names 
+
+export JMS_LOGIN=FM.$TENANT.LOGIN
+export JMS_LOGOFF=FM.$TENANT.LOGOFF
+export JMS_CONTROL=FM.$TENANT.CONTROL
+export JMS_DB=FM.$TENANT.DB
+export JMS_ACTION=FM.$TENANT.ACTION
+export JMS_SYSTEM=FM.CONTROL
+
+# Default database information
+
+export JMS_DBTYPE=sqlserver
+export JMS_DBHOST= 
+export JMS_DBPORT=1433
+export JMS_DBSCHEMA=
+export JMS_DBUSER=SSPPortal
+export JMS_DBPASS=5rEchuTE
+export JMS_DBDRIVER=com.microsoft.sqlserver.jdbc.SQLServerDriver
+	
+# Java JVM options - the DB process requires more
+
+JAVA_OPTS='-Xmx1G -Xss500m -Xms500m'
+JAVA_OPTD='-Xmx3G -Xss1G -Xms1G'
+
+# Prevents auto-restart of services from CRON or reboot
+
+export FMA_DORM=YES
+

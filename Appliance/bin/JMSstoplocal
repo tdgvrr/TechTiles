@@ -1,0 +1,28 @@
+# 
+# Script to stop the JMS services 
+#
+
+# Must have install directory (default: /appliance)
+
+if [ -z "$FMA_DIR" ]; then
+   export x=`readlink -f $0`
+   export x=`dirname $x`/..
+   export FMA_DIR=`readlink -f $x`
+fi
+
+. $FMA_DIR/conf/sysvars
+
+LIST=`ls $FMA_DIR/data/*.pid 2> /dev/null`
+if [ "$?" -eq "0" ]; then
+   for i in $LIST 
+   do
+      pid=`cat $i | cut -f 2 -d =`
+      serv=`cat $i | cut -f 1 -d .`
+      echo "Killing service $serv PID $pid" 
+      kill $pid
+      rm $i
+   done
+fi
+
+exit 0
+ 

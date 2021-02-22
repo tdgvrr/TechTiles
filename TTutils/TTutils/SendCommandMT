@@ -1,0 +1,77 @@
+#!/bin/bash
+
+#
+# SendCommandMT: Run a command on a particular multi-tenant device
+#
+# Usage is: 
+#
+#         SendCommmandMT <tenant-id> <command>
+#
+# Where <tenant-id> is the five-digit tenant ID (above 1000)  
+#       <command>   is a shell command
+#
+
+DIR=/opt/TTutils                         # Install Directory
+ROOT=/shared/latest                      # root of file depot
+PEM=$DIR/conf/Appliance.pem              # Private key to login
+STAT2=/var/log/TechTiles/Appliance.lst    # Network status log file
+STATUS=/var/log/openvpn.status           # Network status log file
+MAXAGE=900
+SSHOPT="-o UserKnownHostsFile=/dev/null "
+
+# Get the host name...fmamtxx where xx is ((tenant - 1000) / 20) + 1
+
+if [ -z "$1" ]; then 
+   echo "ERROR: No tenant ID"
+   exit 4
+fi
+
+if [ "$1" -lt "01000" ]; then 
+   echo "ERROR: No tenant ID"
+   exit 4
+fi
+
+if [ -z "$2" ]; then
+   echo "ERROR: No command"
+   exit 8
+fi
+
+if [ "$EUID" != "0" ]; then
+   echo "Not running with root privileges"
+   exit 12
+fi
+
+TID=${1##+(0)}
+DEV=`expr \( $TID - 1000 \) / 20 + 1`
+if [ "$DEV" -gt "9" ]; then
+   DEV=fmamt$DEV
+else
+   DEV=fmamt0$DEV
+fi
+echo "Connecting to tenant $1 on device $DEV"
+
+IP=`grep $DEV $STAT2 | cut -f 1` 
+if [ -z "$IP" ]; then
+   if [ -f "/shared/Tenants/INDEX/MultiTenant.$DEV" ]; then
+      . /shared/Tenants/INDEX/MultiTenant.$DEV
+      IP=${!DEV} 
+      L=`grep "$IP" $STATUS | head -n 1`
+      if [ -z "$L" ]; then
+         echo "IP $IP no longer connected via VPN"
+         exit 8
+      fi
+      LAD=`echo $L | cut -f 4 -d ','`
+      D1=`date +%s -d "$LAD"`
+      D2=`date +%s`
+      T=`expr \( $D2 - $D1 \)`
+      if [ "$T" -gt "300" ]; then
+         echo "WARNING: $DEV was accessed more than five minutes ago - may not be connected"
+         echo "Last Access: $LAD"
+      fi
+   fi
+fi
+
+echo "$2" | ssh -i $PEM -p 11022 -E ~/SSH.log -q $SSHOPT master@$IP 
+
+exit $?
+

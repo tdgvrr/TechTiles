@@ -1,0 +1,127 @@
+#!/bin/bash
+
+#
+# SystemStatus: check services  
+#
+
+echo "SystemStatus: Show global system status" 
+
+# VPN status
+
+ps -ef | grep -i openvpn.pid > /dev/null 2>&1
+if [ "$?" = "0" ]; then
+ PVPN="ACTIVE"
+else
+ PVPN="INACTIVE"
+fi 
+
+ps -ef | grep -i openvpn1194.pid > /dev/null 2>&1
+if [ "$?" = "0" ]; then
+ SVPN="ACTIVE"
+else
+ SVPN="INACTIVE" 
+fi
+
+# Web Server status
+
+curl --connect-timeout 1 --max-time 5 https://fmportal.techtiles.net > /dev/null 2>&1
+if [ "$?" = "0" ]; then
+ PWEB="ACTIVE"
+else
+ PWEB="INACTIVE" 
+fi
+
+curl --connect-timeout 1 --max-time 5 http://fmportal.techtiles.net > /dev/null 2>&1
+if [ "$?" = "0" ]; then
+ SWEB="ACTIVE"
+else
+ SWEB="INACTIVE" 
+fi
+
+# Database status
+
+if [ -f "/etc/TechTiles/sysvars" ]; then
+   . /etc/TechTiles/sysvars
+fi
+
+V=`echo "SHOW VARIABLES LIKE 'version'" | mysql -u $TTDBUSER -h $TTDB -P $TTDBPORT -p$TTDBPASS FM 2> /dev/null | grep version`
+if [ ! -z "$V" ]; then
+   PDB="ACTIVE"
+else
+   PDB="INACTIVE" 
+fi
+
+# Workflow status
+
+ps -ef | grep -i mule > /dev/null 2>&1
+if [ "$?" = "0" ]; then
+ PWF="ACTIVE"
+else
+ PWF="INACTIVE"
+fi 
+
+# Form service
+
+ps -ef | grep -i tomcat > /dev/null 2>&1
+if [ "$?" = "0" ]; then
+ PFORM="ACTIVE"
+else
+ PFORM="INACTIVE"
+fi 
+
+# JMS service
+
+ps -ef | grep -i activemq > /dev/null 2>&1
+if [ "$?" = "0" ]; then
+ PJMS="ACTIVE"
+else
+ PJMS="INACTIVE"
+fi 
+
+# Manager service
+
+ps -ef | grep -i zabbix > /dev/null 2>&1
+if [ "$?" = "0" ]; then
+ PMAN="ACTIVE"
+else
+ PMAN="INACTIVE"
+fi 
+
+# Email Service
+
+nc -w 1 -i 0 -q 1 -vz email-smtp.us-east-1.amazonaws.com 587 > /dev/null 2>&1
+if [ "$?" = "0" ]; then
+ PEMAIL="ACTIVE"
+else
+ PEMAIL="INACTIVE"
+fi 
+
+# NFS status 
+
+nfsstat > /dev/null 2>&1
+if [ "$?" = "0" ]; then
+ PNFS="ACTIVE"
+else
+ PNFS="INACTIVE"
+fi 
+
+# for now, some of the backup services can't be checked independently...if primary is active, so is secondary
+
+SDB=$PDB
+SWF=$PWF
+
+# Show the results
+
+echo -e "Primary VPN \t\t\t*$PVPN*"
+echo -e "Alternate VPN \t\t\t*$SVPN*"
+echo -e "Primary Web Server \t\t*$PWEB*"
+echo -e "Backup Web Server \t\t*$SWEB*"
+echo -e "Primary Database Service \t*$PDB*"
+echo -e "Secondary Database Service \t*$SDB*"
+echo -e "Primary Workflow Service \t*$PWF*"
+echo -e "Secondary Workflow Service \t*$SWF*"
+echo -e "JMS Service \t\t\t*$PJMS*"
+echo -e "Form Service \t\t\t*$PFORM*"
+echo -e "Manager Service \t\t*$PMAN*" 
+echo -e "Email Gateway Service \t\t*$PEMAIL*" 
+echo -e "Secure File Share \t\t*$PNFS*"

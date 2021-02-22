@@ -1,0 +1,123 @@
+#!/bin/bash
+
+#
+# Configuration script: Set static IP addresses
+#
+# Syntax: 
+# 
+# cfg_static --ip <ip> 
+#            --mask <netmask>
+#            --gateway <ip> 
+#            --dns1 <dns1> 
+#            --dns2 <dns2> 
+#            --dns3 <dns3> 
+#            --dns4 <dns4>
+#
+
+CheckIP()
+{
+ipaddr=$1
+
+if [[ $ipaddr =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  return 0
+fi
+
+echo "ERROR: $ipaddr is not a valid IP address" | tee -a $LOG
+exit 8
+}
+
+SRC=/appliance/conf
+NOW=`/bin/date +%Y-%m-%d@%H:%M:%S`
+
+# Get our install directory (default: /appliance)
+
+if [ -z "$FMA_DIR" ]; then
+   if [ -d "/appliance" ]; then
+      export FMA_DIR=/appliance
+   else
+      export x=`readlink -f $0`
+      export x=`dirname $x`/..
+      export FMA_DIR=`readlink -f $x`
+   fi
+fi
+
+echo "Install Directory is $FMA_DIR" 
+LOG=$FMA_DIR/logs/ConfigStatic.log
+echo "$0 START at `/bin/date`" > $LOG
+TARGET=$FMA_DIR/conf/NetConfig
+
+OPTS=`getopt -o i:m:g: --long ip:,mask:,gateway:,dns1:,dns2:,dns3:,dns4: -n 'cfg_static' -- "$@"`
+
+if [ $? != 0 ] ; then 
+   echo "ERROR: Invalid options." | tee -a $LOG  
+   echo "$OPTS" | tee -a $LOG
+   exit 8 
+fi
+
+eval set -- "$OPTS"
+d1=""
+d2=""
+d3="" 
+d4="" 
+
+while true 
+do
+  case "$1" in
+    -i | --ip )      ip=$2; shift; shift ;;
+    -m | --mask )    mask=$2; shift; shift ;;
+    -g | --gateway ) gw=$2; shift; shift ;;
+    --dns1 )         d1=$2; shift; shift ;;
+    --dns2 )         d2=$2; shift; shift ;;
+    --dns3 )         d3=$2; shift; shift ;;
+    --dns4 )         d4=$2; shift; shift ;;
+    -- ) shift; break ;;
+    * ) break ;;
+  esac
+done
+
+echo "---Network Configuration---" | tee -a $LOG
+echo "IP: $ip MASK: $mask GATEWAY: $gw DNS1: $d1 DNS2: $d2 DNS3: $d3 DNS4: $d4" | tee -a $LOG
+
+if [ -z "$ip" -o -z "$mask" -o -z "$gw" -o -z "$d1" ]; then
+  echo "ERROR: You must specify IP, NETMASK, GATEWAY and at least one DNS" | tee -a $LOG
+  exit 8
+fi
+
+CheckIP $ip
+CheckIP $mask
+CheckIP $gw
+CheckIP $d1
+
+if [ "$EUID" != "0" ]; then
+  echo "Not running with root privileges" | tee -a $LOG
+  exit 8
+fi
+
+IF=`cat /proc/net/dev | grep ^en | cut -f 1 -d ":"`
+if [ "$IF" != "enp0s25" ]; then
+   echo "ERROR: Network interface not enp0s25 on this system" | tee -a $LOG
+   exit 8
+fi
+
+# Create the config file in $FMA_DIR/conf/NetConfig
+
+TF=static16.template
+
+cp $SRC/$TF $TARGET 
+
+ex -s -c "%s/%IPADDR/$ip/g" -c 'wq' $TARGET
+ex -s -c "%s/%NETMASK/$mask/g" -c 'wq' $TARGET
+ex -s -c "%s/%GATEWAY/$gw/g" -c 'wq' $TARGET
+ex -s -c "%s/%DNS1/$d1/g" -c 'wq' $TARGET
+ex -s -c "%s/%DNS2/$d2/g" -c 'wq' $TARGET
+ex -s -c "%s/%DNS3/$d3/g" -c 'wq' $TARGET
+ex -s -c "%s/%DNS4/$d4/g" -c 'wq' $TARGET
+
+echo "---Static Network---" | tee -a $LOG
+cat $TARGET | tee -a $LOG
+
+cp /etc/network/interfaces /etc/network/interfaces.original
+cp $TARGET /etc/network/interfaces
+
+echo "SUCCESS: Changes complete for `hostname`" | tee -a $LOG
+exit 0

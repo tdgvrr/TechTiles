@@ -1,0 +1,76 @@
+#!/bin/bash
+
+#
+# TTcal: Build and send simple calendar items over email 
+#
+# This script builds and sends calendar items with arbitrary content that may be generated 
+# from TechTiles workflow forms using a template approach. 
+#
+# Syntax: # TTcal [options]
+#         
+# These options are implemented:
+# -D,--debug                          Enable debug-level message logging
+# -d,--desc <desc>                    Event description text
+# -dt,--descTemplate <descTemplate>   Event description template file
+# -e,--ends <ends>                    Event duration
+# -f,--form <form>                    Form identifier
+# -h,--help                           About TTcal
+# -l,--location <location>            Event location
+# -m,--msg <msg>                      Message description text
+# -mt,--msgTemplate <msgTemplate>     Message description template file
+# -o,--organizer <organizer>          Organizer email address
+# -s,--summary <summ>                 Event summary for calendar item
+# -t,--title <title>                  Event title for calendar item
+# -to,--to <to>                       Target email address list
+# -w,--when <when>                    Event time and date
+#
+# The TO and WHEN parameters are required.
+#
+# If not specified, the ORGANIZER defaults to the first address from the TO parameter
+#
+# WHEN accepts a wide range of friendly timestamps or relative values:
+#    - 12/25/2020 at 11:00
+#    - next tuesday
+#    - tomorrow + 1 hour
+# 
+# ENDS can be a specific date or relative to WHEN:
+#    - 1 hour (event starts at WHEN and ends in one hour)
+#    - 12/25/2020 at midnight (event ends at a specific time)
+# 
+# There are two parts to the calendar item: a 'message' and a 'calendar item', and each of 
+# these sections with titles and descriptive text. The MSG/MSGT control the text body of the 
+# email message that receivers see. It can be HTML or plain text. 
+#
+# The DESC/DESCT options control the description in the calandar item itself. It must be plain text.
+# 
+# The titles are set by the TITLE (for the email message) and SUMM (for the calendar item) parameters. 
+#
+# Database and tenant configuration data must be stored in /etc/TechTiles/sysvars for this to work properly. 
+#
+# Copyright (c) 2020, TechTiles LLC - All Rights Reserved. 
+#
+# V1.0 - Jan2020: New [VRR]
+#
+
+DIR="/opt/TTcal"   # Install directory
+if [ ! -d "$DIR" ]; then
+   DIR="."
+fi
+
+# First, we bring in the TechTiles system configuration variables 
+
+if [ -f /etc/TechTiles/sysvars ]; then
+    . /etc/TechTiles/sysvars
+fi
+
+if [ -f ./sysvars ]; then 
+    . ./sysvars
+fi
+
+export TENANT TENANTID TTDB TTDBPORT TTDBUSER TTDBPASS
+
+# Hand off to the Groovy script
+
+cd $DIR 
+groovy -cp 'lib/*' TTcal.groovy "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" "${10}" "${11}" "${12}" "${13}" "${14}" "${15}" "${16}" "${17}" "${18}" "${19}" "${20}" 
+exit $? 

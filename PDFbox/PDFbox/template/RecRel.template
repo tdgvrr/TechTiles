@@ -1,0 +1,12 @@
+set #0 = ${ new Date().format('dd MMMM yyyy') }
+set #1 = ${ form.School.contains("JMMES") ? " X " : " "}
+set #2 = ${ form.School.contains("EHMS")  ? " X " : " "}
+set #3 = ${ form.School.contains("EHHS")  ? " X " : " "}
+sign #4 
+set #5 = ${ new Date().format('dd MMMM yyyy') }
+font /Helv 10 Tf 0 g
+set #6 = ${form.StudentFirstName + " " + form.StudentMiddleName + " " + form.StudentLastName}
+set #7 = ${form.StudentFirstName + " " + form.StudentMiddleName + " " + form.StudentLastName}
+set #8 = ${form.LastGradeAttended}
+
+quit

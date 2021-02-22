@@ -1,0 +1,13 @@
+#
+# These are environment variables containing all the important 
+# configuration options for TechTiles. 
+#
+#TTPENDING=yes
+
+TENANT=auburn
+TENANTID=3
+TTDB=techtiles-auburn.crw7rmbndgfd.us-east-1.rds.amazonaws.com
+TTDBPORT=3306
+TTDBUSER=CEDS
+TTDBPASS=cedsuser
+

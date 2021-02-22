@@ -1,0 +1,254 @@
+#!/bin/bash
+
+# Configuration script: report on final configuration
+
+GetDB()
+{
+ var=`grep -v "^#" $1 | grep "$2" | cut -f 2 -d "="`
+ var=`echo $var` 
+ if [ -z "$var" ]; then
+    echo "WARNING: No $2 found in configuration" | tee -a $LOG
+    return 0
+ fi
+
+ return 1
+}
+
+GetSysvar()
+{
+  if [ ! -f "$FMA_DIR/conf/sysvars" ]; then
+     echo "WARNING: No configuration file found" | tee -a $LOG
+     return 0
+  fi
+
+  var=`grep -v "^#" $FMA_DIR/conf/sysvars | grep "$1=" | cut -f 2- -d '='`
+  var=`echo $var`  # Removes leading/trailing blanks
+  if [ -z "$var" ]; then
+     echo "WARNING: No $1 found in configuration" >> $LOG
+     return 0
+  fi
+
+  return 1
+
+}
+
+CheckDir()
+{
+ if [ ! -d "$1" ]; then
+    echo "WARNING: directory $1 not found" | tee -a $LOG
+    return 0
+ fi
+ echo "CheckDir: $1 [OKAY]" >> $LOG
+ return 1
+}
+
+MaskPW()
+{
+pwl=${#1}
+if [ $pwl -lt 5 ]; then
+   pass=$1
+   return
+fi
+pass=`echo $var | cut -c -3`
+i=4
+while [ $i -lt $pwl ] 
+do
+  let i=i+1 
+  pass=${pass}*
+done   
+pass=${pass}`echo $var | cut -c ${i}-`
+}
+
+IsDhcp()
+{
+  i=$1
+
+  # If we setup something in /etc/network/interfaces, then it's not DHCP 
+
+  static=`grep -v "^#" /etc/network/interfaces | grep "$i" | grep "static"`
+  if [ ! -z "$static" ]; then
+      dhcp="static"
+      echo "STATIC Network Configuration"
+      grep -E "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" /etc/network/interfaces | tee -a $LOG
+      return 0
+  else
+      dhcp="dhcp"
+      return 1
+  fi
+
+  
+  # The tests below are only on a running system - not how we configured it
+
+  if [ -f "/var/lib/dhcp/dhclient.leases" ]; then
+     if [ "$(( $(date +"%s") - $(stat -c "%Y" /var/lib/dhcp/dhclient.leases) ))" -gt "86400" ]; then
+        dhcp=`grep -i $i /etc/network/interfaces | grep -i "dhcp"`
+        if [ -z "$dhcp" ]; then
+           if [ -d "/etc/network/interfaces.d" ]; then
+              dhcp=`grep -i $i /etc/network/interfaces.d/* 2> /dev/null | grep -i "dhcp"`
+           fi
+        fi
+     else
+         dhcp=`grep -i $i /var/lib/dhcp/dhclient.leases`
+     fi
+  fi
+
+  if [ -z "$dhcp" ]; then
+     dhcp="static"
+     return 0
+  else
+     dhcp="dhcp"
+     return 1
+  fi  
+}
+
+NOW=`/bin/date +%Y-%m-%d@%H:%M:%S`
+
+# Get our install directory (default: /appliance)
+
+if [ -z "$FMA_DIR" ]; then
+   if [ -d "/appliance" ]; then
+      export FMA_DIR=/appliance
+   else
+      export x=`readlink -f $0`
+      export x=`dirname $x`/..
+      export FMA_DIR=`readlink -f $x`
+   fi
+fi
+
+export LOG=$HOME/ConfigReport.log
+
+# First, ensure our key directories are present 
+
+echo "SYSTEM INFO"
+echo "System ID: " `cat $FMA_DIR/conf/SystemID` | tee -a $LOG
+echo "System Type: " `cat $FMA_DIR/conf/SystemType` | tee -a $LOG
+echo "Secure VPN/JMS host is " `cat $FMA_DIR/conf/TThost` | tee -a $LOG
+if [ -f "$FMA_DIR/conf/AdminPass" ]; then
+   echo "Password for setup account is " `cat $FMA_DIR/conf/AdminPass` | tee -a $LOG
+fi
+
+# Get the values from our configuration files
+
+GetSysvar "TENANT" 
+echo "System TenantID $var" | tee -a $LOG
+
+echo " " | tee -a $LOG
+echo "AUTHENTICATION INFORMATION" | tee -a $LOG
+
+GetSysvar "AUTH"
+echo "Authentication protocol is $var" | tee -a $LOG
+
+GetSysvar "AUTH_HOST" 
+echo "Authentication host is $var" | tee -a $LOG
+
+GetSysvar "AUTH_USER"
+echo "Privileged System ID is $var" | tee -a $LOG
+
+GetSysvar "AUTH_PASS"
+MaskPW $var
+echo "Password for privileged user is $pass" | tee -a $LOG 
+
+GetSysvar "AUTH_DN"
+echo "Directory Base DN is $var" | tee -a $LOG
+
+GetSysvar "AUTH_DOMAIN"
+echo "Windows default domain is $var" | tee -a $LOG
+
+GetSysvar "AUTH_DEFDMN"
+echo "Default domain membership is $var" | tee -a $LOG
+
+echo " " | tee -a $LOG
+echo "DATABASE CONFIGURATION" | tee -a $LOG
+echo "Connection: Primary default database" | tee -a $LOG
+GetSysvar "JMS_DBTYPE"
+echo "[DEFAULT] database type is $var" | tee -a $LOG
+
+GetSysvar "JMS_DBHOST" 
+echo "[DEFAULT] host is $var" | tee -a $LOG
+
+GetSysvar "JMS_DBPORT" 
+echo "[DEFAULT] running on port $var" | tee -a $LOG
+
+GetSysvar "JMS_DBSCHEMA"
+echo "[DEFAULT] schema is $var" | tee -a $LOG
+
+#GetSysvar "JMS_DBUSER"
+#echo "[DEFAULT] user is $var" | tee -a $LOG
+
+#GetSysvar "JMS_DBPASS"
+#MaskPW $var 
+#echo "[DEFAULT] password is $pass" | tee -a $LOG
+
+# Show additional database connections here
+
+for i in `ls $FMA_DIR/conf/*.DB 2> /dev/null`
+do
+ db=`basename /appliance/conf/timepiece.DB | cut -f 1 -d "." | tr '[a-z]' '[A-Z]'`
+ echo "Connection: $db database" | tee -a $LOG
+
+ grep "%DB" "$i" > /dev/null 2>&1
+ if [ "$?" -eq "0" ]; then
+    echo "[$db] not configured" | tee -a $LOG
+ else
+    GetDB "$i" "dbtype"
+    echo "[$db] database type is $var" | tee -a $LOG
+
+    GetDB "$i" "dbhost"
+    echo "[$db] host is $var" | tee -a $LOG
+
+    GetDB "$i" "dbport"
+    echo "[$db] running on port $var" | tee -a $LOG
+
+    GetDB "$i" "dbschema"
+    echo "[$db] schema is $var" | tee -a $LOG
+
+    #GetDB "$i" "dbuser"
+    #echo "[$db] user is $var" | tee -a $LOG
+
+    #GetDB "$i" "dbpass"
+    #MaskPW $var
+    #echo "[$db] password is $pass" | tee -a $LOG
+ fi
+done
+
+echo " " | tee -a $LOG
+echo "NETWORK INFORMATION" | tee -a $LOG 
+
+if [ -f "/etc/hostname" ]; then
+  echo "Current hostname is " `cat /etc/hostname` | tee -a $LOG
+else
+  echo "WARNING: No hostname found" | tee -a $LOG
+fi
+
+if [ -f "/etc/samba/smb.conf" ]; then
+  SH=`grep -v "^#" /etc/samba/smb.conf | grep -v "^;" | grep "netbios name" | cut -f 2 -d '='`
+  SH=`echo $SH`  # Removes leading/trailing blanks
+  if [ -z "$SH" ]; then
+     echo "WARNING: No NETBIOS name set in configuration" | tee -a $LOG
+  else
+     echo "NETBIOS hostname is $SH" | tee -a $LOG
+  fi
+else
+  echo "WARNING: NETBIOS configuration not found" | tee -a $LOG
+fi
+
+for i in `ls /sys/class/net 2> /dev/null` 
+do
+  state=`cat /sys/class/net/$i/operstate 2> /dev/null | tr '[a-z]' '[A-Z]'`
+  addr=`cat /sys/class/net/$i/address 2> /dev/null`
+  IsDhcp $i 
+  if [ ! -z "$addr" ]; then
+      loopback=`ifconfig $i | grep -i Loopback`
+      if [ -z "$loopback" ]; then
+         echo "Network device $i is $dhcp with MAC $addr" | tee -a $LOG
+         if [ "$state" == "UP" ]; then
+            echo "CURRENT network configuration" | tee -a $LOG
+            ifconfig $i | grep -i "inet addr" | tee -a $LOG
+         fi
+      fi
+  fi
+done
+
+dns=`cat /etc/resolv.conf | grep -v "^#" | grep -v 127.0 | grep nameserv`
+echo "CURRENT DNS Information: $dns" | tee -a $LOG
+exit 0

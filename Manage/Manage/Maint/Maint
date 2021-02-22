@@ -1,0 +1,251 @@
+#!/bin/bash
+
+DBCPORT=21000
+DBSPORT=13306
+# DBHOST="52.70.59.250"
+DBHOST="fmportal.crw7rmbndgfd.us-east-1.rds.amazonaws.com"
+PROXYID="nethub@10.8.0.1"
+PEM=/mnt/shared/Manage/nethub.pem
+SSHOPT="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+CHKAPP=/mnt/shared/Manage/Maint/MDBcheck.groovy
+INSAPP=/mnt/shared/Manage/Maint/MaintCli.groovy
+NOW=`/bin/date`
+LOG=/var/log/TechTiles/Maint.log
+SSHLOG=/var/log/TechTiles/MaintSSH.log
+
+# Parse the command line
+
+function args()
+{
+    options=$(getopt -o t:f:d: --long tenant: --long func: --long dir: -- "$@")
+    [ $? -eq 0 ] || {
+        echo "Incorrect option: -t | --tenant <tenant> -f | --func <function>"
+        exit 4
+    }
+
+    eval set -- "$options"
+    while true; do
+        case "$1" in
+        -t)
+            shift;
+            TENANT=$1
+            ;;
+        -f)
+            shift; 
+            FUNC=$1
+            ;;
+        -d)
+            shift; 
+            DIR=$1
+            ;;
+        --tenant)
+            shift; 
+            TENANT=$1
+            ;;
+        --dir)
+            shift; 
+            DIR=$1
+            ;;
+        --func)
+            shift; 
+            FUNC=$1
+            ;;
+        --)
+            shift
+            break
+            ;;
+        esac
+        shift
+    done
+}
+
+function InstallLocal()
+{
+ echo "Maint: Setup for the TechTiles Maintainer on `hostname` by `whoami`"
+
+ case "$MAINT_TYPE" in
+    Appliance)
+       echo "Maint: Configuring $MAINT_TYPE using $FMA_DIR"
+       if [ -z "$FMA_DIR" ]; then
+          echo "Maint: WARNING - FMA_DIR not set. Default = /appliance"
+          export FMA_DIR=/appliance
+       fi
+      
+       if [ ! -d "/etc/TechTiles" ]; then
+          mkdir -p /etc/Techtiles
+       fi
+       
+       if [ ! -d "/var/log/TechTiles" ]; then
+          mkdir -p /var/log/TechTiles
+       fi
+
+       if [ -d "/mnt/shared/JARS" ]; then
+          cp -p /mnt/shared/JARS/mysql-c*.jar $FMA_DIR/jms/lib
+          cp -p /mnt/shared/JARS/jline*.jar   $FMA_DIR/jms/lib
+       fi
+        
+       cp -p /mnt/shared/Manage/Maint/Maint /appliance/bin/Maint
+
+       if [ ! -d "/mnt/shared/Tenants/T$TENANT/logs" ]; then
+          mkdir -p "/mnt/shared/Tenants/T$TENANT/logs" 
+       fi
+        
+       if [ ! -f "/etc/sudoers.d/Manage.sudo" ]; then 
+          if [ -f "/mnt/shared/Manage/Patch" ]; then
+             /mnt/shared/Manage/Patch
+          fi
+       fi 
+
+       if [ -f "/mnt/shared/latest/conf/crontab.appliance" ]; then
+          crontab -l | grep Maint > /dev/null 2>&1 
+          if [ "$?" -ne "0" ]; then
+             crontab "/mnt/shared/latest/conf/crontab.appliance"
+             echo "Maint: Updated CRONTAB"
+          fi
+       fi
+       
+       echo "Maint: Configuration complete"
+       ;;
+
+    MultiTenant)
+       echo "Maint: Configuring $MAINT_TYPE"
+       if [ -z "$FMA_DIR" ]; then
+          echo "Maint: WARNING - FMA_DIR not set. Default = /appliance"
+          export FMA_DIR=/appliance
+       fi
+        
+       if [ -d "/mnt/shared/JARS" ]; then
+          cp -p /mnt/shared/JARS/mysql-c*.jar $FMA_DIR/jms/lib
+          cp -p /mnt/shared/JARS/jline*.jar   $FMA_DIR/jms/lib
+       fi
+        
+       cp -p /mnt/shared/Manage/Maint/Maint /appliance/bin/Maint
+
+       if [ -f "/mnt/shared/latest/conf/crontab.MT" ]; then
+          crontab -l | grep Maint > /dev/null 2>&1 
+          if [ "$?" -ne "0" ]; then
+             cat "/mnt/shared/latest/conf/crontab.MT | crontab "
+             echo "Maint: Updated CRONTAB"
+          fi
+       fi
+       
+       echo "Maint: Configuration complete"
+       ;;
+
+    Server)
+       echo "Maint: Configuring $MAINT_TYPE"
+       ;;
+
+    *)
+       echo "Maint: Unknown system type at $MAINT_TYPE"
+       exit 4
+ esac
+
+}
+
+# Verify we have root 
+
+ID=`id -u`
+if [ "$ID" -ne "0" ]; then 
+   echo "Maint: ERROR - no root privileges"
+   exit 8
+fi
+
+if [ -f "$LOG" ]; then
+   echo "Maint: START <$@> `/bin/date` " >> $LOG
+else
+   mkdir -p `dirname $LOG`
+   echo "Maint: START <$@> `/bin/date` " > $LOG
+fi
+# Set the type of system
+
+H=`hostname`
+MAINT_TYPE="Appliance" 
+if [[ "$H" == *"techtiles."* ]]; then
+   MAINT_TYPE="Server"
+   CHKAPP=/shared/Manage/Maint/MDBcheck.groovy
+   INSAPP=/shared/Manage/Maint/MaintCli.groovy
+else 
+   if [ -f "/etc/TechTiles/Appliance" ]; then
+       grep -i "MULTI" "/etc/TechTiles/Appliance" > /dev/null 2>&1
+       if [ "$?" -eq "0" ]; then
+          MAINT_TYPE="MultiTenant"
+       fi
+   fi
+fi
+export MAINT_TYPE=$MAINT_TYPE
+ 
+if [ "$MAINT_TYPE" != "Server" ]; then
+   if [ ! -d "/mnt/shared/Manage" ]; then
+      echo "Maint: shared filesystem not mounted" | tee -a $LOG
+      exit 8
+   fi
+
+   # Start the port forwarder - client has no direct DB network access
+
+   if [ ! -f "$PEM" ]; then 
+      echo "Maint: can't access shared certificate file" | tee -a $LOG
+      exit 8
+   fi
+
+   SPID=`ps  -C ssh -o "pid,command" | grep $DBCPORT | cut -f 1 -d 's'`
+   SPID=`echo $SPID`
+   if [ ! -z "$SPID" ]; then
+      echo "Maint: Port forwarding server running <$SPID> - restarting"
+      kill $SPID
+   fi
+
+   echo "ssh -nqNL $DBCPORT:$DBHOST:$DBSPORT -p 10022 -i $PEM $SSHOPT $PROXYID" >> $LOG 
+   ssh -nqNL "$DBCPORT:$DBHOST:$DBSPORT" -p 10022 -i $PEM $SSHOPT $PROXYID >> $SSHLOG & 
+   sleep 1
+   SPID=`ps  -C ssh -o "pid,command" | grep $DBCPORT | cut -f 1 -d 's'`
+   SPID=`echo $SPID`
+   if [ -z "$SPID" ]; then
+      echo "Maint: ERROR - port forwarder not starting" | tee -a $LOG
+      exit 8
+   fi
+   echo "Maint: Port forwarding active - $SPID"
+   export MAINT_DBPORT=$DBCPORT 
+   export MAINT_DBHOST="localhost" 
+else
+   export MAINT_DBPORT=$DBSPORT 
+   export MAINT_DBHOST=$DBHOST 
+fi
+
+# Get the tenant info 
+
+args $0 "$@"
+
+if [ -z "$FMA_DIR" ]; then
+   export FMA_DIR=/appliance 
+fi
+
+if [ -z "$TENANT" ]; then
+   . $FMA_DIR/conf/sysvars   
+fi
+    
+export TENANT=$TENANT
+export FMA_DIR=$FMA_DIR 
+
+case "$FUNC" in
+  CHECK)
+     groovy -cp "$FMA_DIR/jms/lib/*" $CHKAPP
+     ;;
+  INSTALL)
+     groovy -cp "$FMA_DIR/jms/lib/*" $INSAPP
+     ;;
+  SETUP)
+     InstallLocal 
+     ;;
+  *)
+     groovy -cp "$FMA_DIR/jms/lib/*" $CHKAPP
+     ;;
+esac
+  
+if [ ! -z "$SPID" ]; then
+   echo "Maint: Shutdown port forwarding via PID $SPID" 
+   kill $SPID
+fi
+
+echo "Maint: STOP `/bin/date`" >> $LOG
+exit 0

@@ -1,0 +1,8 @@
+/opt/TTloadRules/GetApproverListByBuilding Starting  Sun Feb 21 16:53:15 EST 2021
+Command received: WorkflowT00101new @submitter-email=soconnor@wfsd.k12.ny.us @submitter-role=CL 11 @submitter-location=35
+Fetching items for @submitter-email=soconnor@wfsd.k12.ny.us/@submitter-role=CL 11/@submitter-location=35 from WorkflowT00101new...
+TTGetList272: Fetch using @submitter-email=soconnor@wfsd.k12.ny.us/@submitter-role=CL 11/@submitter-location=35 on WorkflowT00101new
+Connected - Database: jdbc:mysql://fmportal.crw7rmbndgfd.us-east-1.rds.amazonaws.com:13306/CustomerData
+TTGetList: No data for @submitter-email=soconnor@wfsd.k12.ny.us/@submitter-role=CL 11/@submitter-location=35 in WorkflowT00101new
+TTGetList: Query: SELECT * FROM WorkflowT00101new WHERE (Employee = 'soconnor@wfsd.k12.ny.us')  or (Employee = '' AND    ((Role = 'CL 11' and Building = '35')  or (Role = 'CL 11' and Building = '')  or (Role = '' and Building = '35')))  ORDER BY Employee desc, Role desc, Building
+[4] MSG=No data for @submitter-email=soconnor@wfsd.k12.ny.us/@submitter-role=CL 11/@submitter-location=35

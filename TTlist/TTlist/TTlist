@@ -1,0 +1,98 @@
+#!/bin/bash
+
+#
+# TTlist: Fetch a dynamic list from the TechTiles Database. 
+#
+# This script can be run as a step in the TechTiles Dynamic Workflow in order
+# to fetch a list associated with some type of arbitrary key. 
+#
+# Syntax: 
+# 
+# TTlist -t <tenant-id> -l <list-type> -n <list-name> 
+#
+# Where: 
+#
+#    - tenant-id          ID of the tenant we're fetching data for
+#    - list-type          Logical list type 
+#    - list-name          Unique name of the list (tenant.list-type.list-name is unique)
+#
+# This script outputs the list on STDOUT. 
+#
+# (c) 2017, TechTiles LLC - All Rights Reserved. 
+#
+# V1.0 - Aug2017: New [VRR]
+#
+
+DEBUG=0              # Set to "1" to get additional debug messages
+DIR="/opt/TTlist"    # Install directory
+#DIR=$PWD            # Install directory
+STDERR=$DIR/logs/TTlist-$$.out
+LISTTYPE=""
+LISTNAME=""
+TENANT=""
+
+if [ ! -z "$TTDEBUG" ]; then
+   DEBUG=1
+fi
+
+cd $DIR             # Be sure we run in our install directory
+
+# First, we bring in the TechTiles system configuration variables 
+
+if [ -f /etc/TechTiles/sysvars ]; then
+    . /etc/TechTiles/sysvars
+fi
+
+export TENANT TTDB TTDBPORT TTDBUSER TTDBPASS
+# export TTDB=localhost   # DEBUG #
+
+# Process the command line options
+
+while getopts "t:l:n:h" opt; do
+   case $opt in
+   t)
+     TENANT=$OPTARG
+   ;;
+   l)
+     LISTTYPE=$OPTARG
+   ;;
+   n)
+     LISTNAME=$OPTARG
+   ;;
+   h)
+     echo "TTlist -t <tenant-id> -l <list-type> -n <list-name>"
+     exit 1
+   ;;
+   \?)
+     echo "Invalid option: -$OPTARG"
+     exit 4
+   ;;
+   :)
+     echo "Option -$OPTARG missing argument"
+     exit 4
+   ;;
+   esac
+done
+
+if [ -z "$TENANT" ]; then
+    echo "ERROR: Missing tenant ID (-t <tenant-id>)"
+    exit 4
+fi
+
+if [ -z "$LISTTYPE" ]; then
+   echo "ERROR: Missing list type (-l <list-type>)"
+   exit 4
+fi
+
+if [ -z "$LISTNAME" ]; then
+   echo "ERROR: Missing list name (-n <list-name>)"
+   exit 4
+fi
+
+# Fetch the list
+
+echo "Fetching Tenant $TENANT List Type $LISTTYPE ListName $LISTNAME..." >> $STDERR
+$DIR/TTlist.groovy $TENANT "$LISTTYPE" "$LISTNAME" 2>> $STDERR
+
+exit $?
+

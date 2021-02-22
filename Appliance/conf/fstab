@@ -1,0 +1,3 @@
+# Shared filesystem - mounted when the VPN connection is complete
+10.8.0.1:/shared /mnt/shared	nfs4	soft,timeo=100,async,noauto	0	0
+

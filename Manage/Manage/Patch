@@ -1,0 +1,13 @@
+#!/bin/bash
+
+cp -up /mnt/shared/latest/jms/Control.groovy /appliance/jms/Control.groovy
+cp -up /mnt/shared/latest/bin/GetVPNip       /appliance/bin/GetVPNip
+
+mkdir -p /etc/TechTiles
+
+if [ ! -f "/etc/sudoers.d/manage" ]; then
+   echo "Enabling management scripts" 
+   cp /mnt/shared/latest/conf/Manage.sudo /etc/sudoers.d/manage
+   chmod 0440 /etc/sudoers.d/manage
+fi
+

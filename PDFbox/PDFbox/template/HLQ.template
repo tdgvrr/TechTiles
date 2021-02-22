@@ -1,0 +1,66 @@
+font /Helv 10 Tf 0y g
+set #0 = ${form.StudentFirstName + " " + (form.StudentMiddleInitial ? form.StudentMiddleInitial : " " ) + " " + form.StudentLastName}
+set #1 = ${form.Gender}
+set #2 = ${Date.parse("yyyy-MM-dd", form.DOB).format("MMMM dd yyyy").toString() }
+set #3 = ${form.Gender.startsWith("M") ? "Male" : "Female" }
+set #4 = ${form.ParentLastName + ", " + form.ParentFirstName + " - " + form.Relationship}
+set #5 = ${form.HomeLanguageCode}
+set #6 = ${form.LanguageSpokenInHome.contains("Eng") ? "true"  : "false" }
+set #7 = ${form.LanguageSpokenInHome.contains("Eng") ? "false" : "true"  }
+set #8 = ${form.LanguageFirstLearned.contains("Eng") ? "false" : "true"  }
+set #9 = ${form.LanguageFirstLearned.contains("Eng") ? "true"  : "false" }
+set #10 = ${form.MothersHomeLanguage   ? "true"  : "false" }
+set #11 = ${form.GuardiansHomeLanguage ? "true"  : "false" }
+set #12 = ${form.FathersHomeLanguage   ? "true"  : "false" }
+set #14 = ${ (form.StudentID ? form.StudentID : " ") }
+set #15 = ${ form.YearsInSchool }
+set #16 = ${ form.DifficultyDescription ? form.DifficultyDescription : " " }
+set #17 = ${ form?.DifficultySeverity?.contains("Somewhat") ? "true" : "false" }
+set #18 = ${ form?.DifficultySeverity?.contains("Severe")   ? "true" : "false" }
+set #19 = ${form.SpecialEdEvaluation.contains("Yes") ? "false"  : "true" }
+set #20 = ${form.SpecialEdEvaluation.contains("Yes") ? "true"   : "false" }
+set #21 = ${form.SpecialEdReceived.contains("Yes")   ? "false"  : "true" }
+set #22 = ${form.SpecialEdReceived.contains("Yes")   ? "true"   : "false" }
+set #23 = ${form?.SpecialEdAge?.startsWith("0") ? "true" : "false" }
+set #24 = ${form?.SpecialEdAge?.startsWith("3") ? "true" : "false" }
+set #25 = ${form?.SpecialEdAge?.startsWith("6") ? "true" : "false" }
+set #26 = ${form.HasIEP.contains("Yes") ? "Yes" : "No" }
+set #27 = ${ (form.OtherStudentComments ? form.OtherStudentComments : " ") }
+set #29 = ${ form.InfoLanguagePreference }
+set #31 = ${ form.Relationship.contains("Mother") ? "true" : "false" }
+set #32 = ${ form.Relationship.contains("Father") ? "true" : "false" }
+
+set #43 = ${ (form.LanguageSpokenInHome  ? form.LanguageSpokenInHome  : "English") }
+set #44 = ${ (form.LanguageFirstLearned  ? form.LanguageFirstLearned  : "English") }
+set #45 = ${ (form.MothersHomeLanguage   ? form.MothersHomeLanguage   : " ") }
+set #46 = ${ (form.GuardiansHomeLanguage ? form.GuardiansHomeLanguage : " ") }
+set #47 = ${ (form.FathersHomeLanguage   ? form.FathersHomeLanguage   : " ") }
+set #48 = ${ (form.LanguagesUnderstood   ? form.LanguagesUnderstood   : " ") }
+set #49 = ${ form.LanguagesUnderstood.contains("Eng") ? "true"  : "false" }
+set #50 = ${ form.LanguagesUnderstood.contains("Eng") ? "false" : "true"  }
+set #51 = ${ form.LanguagesSpoken.contains("Eng") ? "true"  : "false" }
+set #52 = ${ form.LanguagesSpoken.contains("Eng") ? "false" : "true"  }
+set #53 = ${ form?.DoesNotSpeak ? "true" : "false" }
+set #54 = ${ (form.LanguagesSpoken       ? form.LanguagesSpoken       : " ") }
+set #55 = ${ form.LanguagesRead.contains("Eng") ? "true"  : "false" }
+set #56 = ${ form.LanguagesRead.contains("Eng") ? "false" : "true"  }
+set #57 = ${ form?.DoesNotRead ? "true" : "false" }
+set #58 = ${ (form.LanguagesRead         ? form.LanguagesRead         : " ") }
+set #59 = ${ form.LanguagesWritten.contains("Eng") ? "true"  : "false" }
+set #60 = ${ form.LanguagesWritten.contains("Eng") ? "false" : "true"  }
+set #61 = ${ form?.DoesNotWrite ? "true" : "false" }
+set #62 = ${ (form.LanguagesWritten      ? form.LanguagesWritten      : " ") }
+set #63 = ${ form?.DifficultySeverity?.contains("Minor")   ? "true" : "false" }
+set #64 = ${ form.Difficulties.contains("No")   ? "true" : "false" }
+set #65 = ${ form.Difficulties.contains("Yes")  ? "true" : "false" }
+set #66 = ${ form.Difficulties.contains("sure") ? "true" : "false" }
+set #67 = ${ (form.SpecialEdServices     ? form.SpecialEdServices     : " ") }
+set #68 = ${ form.Relationship }
+
+font /Helv 8 Tf 0y g
+set #13 = > > > > >     East Hampton School District #159 - 2 Long Ln, East Hampton NY 11937 
+font /Helv 10 Tf 0y g
+
+sign #30
+
+quit

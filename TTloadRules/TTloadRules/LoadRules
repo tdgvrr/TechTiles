@@ -1,0 +1,54 @@
+#!/bin/bash
+
+# Load an attachment CSV to a DB table
+#
+# LoadRules <table> <formID> <admin-id> <admin-pass>
+#
+
+if [ -f "/etc/TechTiles/sysvars" ]; then
+   . /etc/TechTiles/sysvars
+fi
+
+export TENANT TTDB TTDBPORT TTDBUSER TTDBPASS
+
+DEBUG=1                   # Set to "1" to get additional debug messages
+DIR="/opt/TTloadRules"    # Install directory
+LOG=$DIR/logs/Load-$$.out
+TABLE=$1
+FORMID=$2
+AUTH=$3
+PASS=$4
+
+echo "$0 Starting " `/bin/date` > $LOG
+
+if [ ! -z "$TTDEBUG" ]; then
+   DEBUG=1
+fi
+
+cd $DIR             # Be sure we run in our install directory
+
+if [ $DEBUG -eq 1 ]; then
+   echo "Command received: $@" >> $LOG
+fi
+
+if [ -z "$TABLE" ]; then
+  echo "Missing table name" >> $LOG
+  exit 4
+fi
+
+if [ -z "$FORMID" ]; then 
+  echo "Missing form ID" >> $LOG
+  exit 4
+fi
+
+# Fetch the URL
+
+echo "Fetching attachment URL for Form #$FORMID..." >> $LOG
+
+R1=`$DIR/TTGetURL.groovy $FORMID $TABLE $AUTH $PASS 2>> $LOG`
+RC=$?
+
+echo "[$RC] $R1" >> $LOG
+
+exit $RC
+

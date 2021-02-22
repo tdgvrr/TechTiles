@@ -1,0 +1,1 @@
+/usr/bin/sendemail -f "OptiGate <Info@TechTiles.net>" -t "vince@therefamily.net" -u "Your data request for tenant $tenant" -m "Message text" -a $1 -o "message-content-type=html"

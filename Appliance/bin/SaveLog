@@ -1,0 +1,39 @@
+#!/bin/bash
+# 
+# Script that runs as needed to save a current logfile    
+#
+
+# Set install directory (default: /appliance)
+
+if [ -z "$FMA_DIR" ]; then
+   export x=`readlink -f $0`
+   export x=`dirname $x`/..
+   export FMA_DIR=`readlink -f $x`
+fi
+
+. $FMA_DIR/conf/sysvars
+
+ts=`/bin/date +"%d-%b-%Y@%H:%M:%S"`
+i="$FMA_DIR/logs/$1"
+o="$FMA_DIR/logs/archive/$1@$ts.gz"
+
+# Can save either a single or ALL logs
+
+if [ -z "$1" ]; then
+   for i in `ls $FMA_DIR/logs/*.log`; 
+   do
+       of=`basename $i` 
+       gzip -c "$i" > "$FMA_DIR/logs/archive/$of@$ts.gz"
+   done
+   exit 0
+fi
+
+if [ -f "$i" ]; then
+   gzip -c $i > $o
+else
+   echo "ERROR: Log file $i does not exist"
+   exit 4 
+fi
+
+exit 0
+

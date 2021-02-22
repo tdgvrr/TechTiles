@@ -1,0 +1,12 @@
+<html>
+<head>Event to discuss ${FORMNAME} created on ${FORMCREATED}</head>
+<body>
+<h1>About the student</h1>
+<p>Name: ${FORM.StudentFirstName} ${FORM.StudentLastName}</p>
+<p>DOB: ${FORM.StudentDateOfBirth}</p>
+<p>${FORM.StreetAddress}
+<br>${FORM.Town}, ${FORM.State} ${FORM.Zip}
+</p>
+<p>School is ${FORM.School}</p>
+</body>
+</html>

@@ -1,0 +1,24 @@
+#!/bin/bash
+
+echo "Enter Tenant ID: (5 digits)" 
+read tenant
+
+if [ -z "$tenant" ]; then
+   echo "ERROR: No Tenant supplied"
+   exit 8
+fi
+
+echo "DB Ping - Tenant $tenant" 
+if [ "$tenant" -gt "00999" ]; then 
+   sudo $ROTMT $tenant "echo ::CMDSTART::;/mnt/shared/Manage/remote/PingDB $tenant" | sed '0,/::CMDSTART::/d' 2> /dev/null
+else
+   sudo $ROT $tenant "echo ::CMDSTART::;/mnt/shared/Manage/remote/PingDB $tenant" | sed '0,/::CMDSTART::/d' 2> /dev/null
+fi
+
+if [ -f "/appliance/bin/JMSping" ]; then
+   echo " "
+   /appliance/bin/JMSping -T:$tenant DB
+fi
+
+exit 0
+

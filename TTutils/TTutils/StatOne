@@ -1,0 +1,74 @@
+#!/bin/bash
+
+#
+# Status: display a single connected tenant 
+#
+
+IP=$1
+LOG=/var/log/TechTiles/StatOne.log
+INV=/var/log/TechTiles/Appliance.lst 
+PEM=/opt/TTutils/conf/Appliance.pem
+NOW=`/bin/date +%d-%b-%Y@%T`
+SSHOPT="-o UserKnownHostsFile=/dev/null -o ConnectTimeout=5"
+
+if [ -z "$1" ]; then
+   echo "ERROR - No IP address passed" 
+   exit 0
+fi
+
+MSG=`echo "" | ssh -p 11022 -i $PEM $SSHOPT master@$1 2>/dev/null`
+if [ -z "$MSG" ]; then
+   echo "ERROR - No response from $1" | tee -a $LOG
+fi
+
+echo $MSG >> $LOG 
+NODE=`echo "$MSG" | grep Node: | cut -f 2 -d ":"`
+NODE=`echo $NODE`
+TENANT=`echo "$MSG" | grep "Tenant ID:" | cut -f 2 -d ":" | cut -f 3 -d " "`
+TENANT=`echo $TENANT`
+if [[ $NODE = fmamt* ]]; then
+   let BT="1000+((${NODE:5}-1)*20)"
+  TENANT="$BT/20"
+fi 
+if [ -z "$NODE" ]; then
+  NODE="?"
+else
+  /opt/TTutils/VPN2Hosts $IP $NODE   # Update /etc/hosts
+fi
+
+if [ -z "$TENANT" ]; then
+  TENANT="?"
+fi
+
+echo -e "$IP\tTenant:$TENANT\tNode:$NODE\t$NOW" | tee -a $LOG
+
+# Now manage the current inventory
+
+if [ ! -f "$INV" ]; then
+  echo "*Initialized $NOW*" > $INV
+fi
+
+WORKF=`mktemp --tmpdir=/var/log/TechTiles Appliance.lst.XXX`
+if [ "$TENANT" != "?" ]; then
+   grep -v "$IP" $INV | grep -v "Tenant:$TENANT" > $WORKF
+   echo -e "$IP\tTenant:$TENANT\tNode:$NODE\t$NOW" >> $WORKF
+   sort -u --key 1,1 $WORKF > $INV
+   /opt/TTutils/Stat2Bolt 
+fi
+
+if [ -f "$WORKF" ]; then
+   rm $WORKF
+fi
+
+# Finally, see if we have any special work to do for this tenant
+
+if [ -f "/shared/Tenants/T$TENANT/NextCon.cmd" ]; then
+   CMD=`cat /shared/Tenants/T$TENANT/NextCon.cmd` 
+   if [ ! -z "$CMD" ]; then
+      echo "Running one-time script for tenant $TENANT" | tee -a $LOG
+      echo "$CMD" >> $LOG
+      OF=/shared/Tenants/T$TENANT/NextCon.lastout
+      sudo /opt/TTutils/SendCommand $TENANT "echo ::CMDSTART::;$CMD" | sed '0,/::CMDSTART::/d' > $OF 2> $OF 
+      mv "/shared/Tenants/T$TENANT/NextCon.cmd" "/shared/Tenants/T$TENANT/NextCon.$NOW"
+   fi
+fi

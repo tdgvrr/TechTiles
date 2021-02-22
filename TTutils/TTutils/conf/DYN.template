@@ -1,0 +1,18 @@
+
+# $TARGET
+
+define host{
+        use                     linux-server            ; Name of host template to use
+        host_name               $TARGET.digitalassociates.com 
+        alias                   $TARGET
+        hostgroups		dyn-servers
+	check_command		check_ssh!10022
+        }
+
+define service{
+        use                     local-service         ; Name of service template to use
+        host_name               $TARGET.digitalassociates.com
+        service_description     SSH
+	check_command		check_ssh!10022
+        }
+

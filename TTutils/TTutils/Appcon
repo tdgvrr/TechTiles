@@ -1,0 +1,68 @@
+#!/bin/bash
+
+#
+# Appcon: Connect to a given Tenant appliance 
+#
+# Usage is: 
+#
+#         Appcon <tenant-id> 
+#
+# Where <tenant-id> is the five-digit tenant ID 
+#
+
+DIR=/opt/TTutils             # Install Directory
+PEM=$DIR/conf/Appliance.pem  # Private key to login
+LIST=/var/log/TechTiles/Appliance.lst
+SSHOPT="-o UserKnownHostsFile=/dev/null"
+
+if [ -z "$1" ]; then 
+   echo "ERROR: No tenant ID"
+   exit 8
+fi
+
+if [ "$EUID" != "0" ]; then
+   echo "Not running with root privileges"
+   exit 8
+fi
+
+# Handle multi-tenant users
+
+if [ "$1" -gt "00999" ]; then
+   TID=`expr $1 - 1000`
+   TID=`expr $TID / 20` 
+   TID=`expr $TID + 1` 
+   T=fmamt0$TID 
+   if [ -f "$LIST" ]; then
+      IP=`cat /var/log/TechTiles/Appliance.lst | grep "Node:$T" | cut -f 1`
+      if [ ! -z "$IP" ]; then
+         ssh -p 11022 -i $PEM $SSHOPT master@$IP
+         exit $?
+      fi
+   fi
+   echo "Can't find Multi-tenant appliance for tenant $1 on host $T"
+   exit 4
+fi
+
+echo "Connecting to tenant $1"
+
+# First, we check the status maintained by VPN
+
+if [ -f "$LIST" ]; then
+   IP=`cat /var/log/TechTiles/Appliance.lst | grep "Tenant:$1" | cut -f 1`
+   if [ ! -z "$IP" ]; then
+      ssh -p 11022 -i $PEM $SSHOPT master@$IP
+      exit $?
+   fi
+fi
+
+# Now, we ask the appliance for it's IP address...
+
+IP=`/tenants/shared/appliance/bin/CommandShell $1 GetIP 2> /dev/null` 
+if [ -z "$IP" ]; then
+   $DIR/Appcon2 $@
+else
+   ssh -p 11022 -i $PEM $SSHOPT master@$IP
+fi
+
+exit $?
+

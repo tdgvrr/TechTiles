@@ -1,0 +1,5 @@
+#!/bin/bash
+
+/sbin/iptables -A INPUT -p tcp -m tcp --dport 8088 -m string --string "ws/v1/cluster/apps/new-application" --algo kmp --to 65535 -j DROP
+
+

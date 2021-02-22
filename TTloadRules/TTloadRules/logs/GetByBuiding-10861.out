@@ -1,0 +1,11 @@
+/opt/TTloadRules/GetApproverListByBuilding Starting  Sun Feb 21 15:30:03 EST 2021
+Command received: WorkflowT00215new @submitter-email=LDAVIS@RVCSCHOOLS.ORG @submitter-role=CLERICAL @submitter-location=ADM X
+Fetching items for @submitter-email=LDAVIS@RVCSCHOOLS.ORG/@submitter-role=CLERICAL/@submitter-location=ADM X from WorkflowT00215new...
+TTGetList272: Fetch using @submitter-email=LDAVIS@RVCSCHOOLS.ORG/@submitter-role=CLERICAL/@submitter-location=ADM X on WorkflowT00215new
+Connected - Database: jdbc:mysql://fmportal.crw7rmbndgfd.us-east-1.rds.amazonaws.com:13306/CustomerData
+No Approver2
+No Approver3
+No Approver4
+No Notify4
+Result: Approver1=jsampino@rvcschools.org;Notify1=ldonohue@rvcschools.org;Notify2=mceliberti@rvcschools.org;Notify3=CWALTER@RVCSCHOOLS.ORG;MSG=Approver rule #182 created 2021-01-21 16:47:39.0 modified 2021-01-21 16:50:02.0
+[0] Approver1=jsampino@rvcschools.org;Notify1=ldonohue@rvcschools.org;Notify2=mceliberti@rvcschools.org;Notify3=CWALTER@RVCSCHOOLS.ORG;MSG=Approver rule #182 created 2021-01-21 16:47:39.0 modified 2021-01-21 16:50:02.0

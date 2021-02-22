@@ -1,0 +1,43 @@
+#!/bin/bash 
+#
+# This script sets the network device to a static value	
+# 
+RULE=/etc/udev/rules.d/10-rename-network.rules
+LOG=/var/log/TechTiles/SetNetDev.log
+NOW=`/bin/date +%Y-%m-%d@%H:%M:%S`
+FMA_DIR=/appliance 
+TEMPL=/appliance/conf/v3-netdev
+
+# Get the MAC address of our LAN device
+
+echo "Setup network device name - $NOW" > $LOG
+
+lshw -quiet -class network | grep serial: > /appliance/conf/MACaddr 
+MAC=`cat /appliance/conf/MACaddr | grep serial: | cut -f 2- -d ':'`
+MAC=`echo $MAC`
+
+if [ -f "$RULE" ]; then 
+   cat $RULE >> $LOG   
+   RC=`grep -iF $MAC $RULE`	 
+   if [ ! -z "$RC" ]; then
+      echo "Configuration in $DEV is correct for MAC $MAC" >> $LOG
+      exit 0
+   fi 
+fi
+
+echo "Updating $RULE" >> $LOG 
+cp $TEMPL $RULE
+ex -s -c "%s/??/$MAC/g" -c 'wq' $RULE
+cat $RULE >> $LOG 
+
+ifconfig enp0s25 >> $LOG
+ 
+if [ "$?" == "0" ]; then  
+   echo "Done!" >> $LOG
+   exit 0
+fi
+
+echo "Rebooting to pick up change" >> $LOG
+
+/sbin/reboot 
+

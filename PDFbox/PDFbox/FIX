@@ -1,0 +1,25 @@
+#!/bin/bash
+
+#EMAIL=Vince@TheReFamily.net
+EMAIL=robert.hagan@ehufsd.org
+
+./MakePDF -f 5378 -p HLQ1.6.16.pdf -t HLQ.template -o email:$EMAIL > FIX.log 2>&1
+exit 0
+
+./MakePDF -f 5402 -p HLQ1.6.16.pdf -t HLQ.template -o email:$EMAIL > FIX.log 2>&1
+./MakePDF -f 5403 -p HLQ1.6.16.pdf -t HLQ.template -o email:$EMAIL > FIX.log 2>&1
+./MakePDF -f 5404 -p HLQ1.6.16.pdf -t HLQ.template -o email:$EMAIL > FIX.log 2>&1
+./MakePDF -f 5422 -p HLQ1.6.16.pdf -t HLQ.template -o email:$EMAIL > FIX.log 2>&1
+./MakePDF -f 5424 -p HLQ1.6.16.pdf -t HLQ.template -o email:$EMAIL > FIX.log 2>&1
+./MakePDF -f 5398 -p HLQ1.6.16.pdf -t HLQ.template -o email:$EMAIL > FIX.log 2>&1
+./MakePDF -f 5381 -p HLQ1.6.16.pdf -t HLQ.template -o email:$EMAIL > FIX.log 2>&1
+./MakePDF -f 5415 -p HLQ1.6.16.pdf -t HLQ.template -o email:$EMAIL > FIX.log 2>&1
+./MakePDF -f 5393 -p HLQ1.6.16.pdf -t HLQ.template -o email:$EMAIL > FIX.log 2>&1
+./MakePDF -f 5389 -p HLQ1.6.16.pdf -t HLQ.template -o email:$EMAIL > FIX.log 2>&1
+./MakePDF -f 5378 -p HLQ1.6.16.pdf -t HLQ.template -o email:$EMAIL > FIX.log 2>&1
+./MakePDF -f 5390 -p HLQ1.6.16.pdf -t HLQ.template -o email:$EMAIL > FIX.log 2>&1
+./MakePDF -f 5380 -p HLQ1.6.16.pdf -t HLQ.template -o email:$EMAIL > FIX.log 2>&1
+./MakePDF -f 5417 -p HLQ1.6.16.pdf -t HLQ.template -o email:$EMAIL > FIX.log 2>&1
+./MakePDF -f 5405 -p HLQ1.6.16.pdf -t HLQ.template -o email:$EMAIL > FIX.log 2>&1
+./MakePDF -f 5423 -p HLQ1.6.16.pdf -t HLQ.template -o email:$EMAIL > FIX.log 2>&1
+

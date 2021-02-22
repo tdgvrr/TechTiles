@@ -1,0 +1,8 @@
+/opt/TTloadRules/GetApproverListByBuilding Starting  Mon Feb 22 11:03:48 EST 2021
+Command received: WorkflowT00272new @submitter-email=SPayne@medinacsd.org @RoleName=AIDES @buildingcode=@submitter-location
+Fetching items for @submitter-email=SPayne@medinacsd.org/@RoleName=AIDES/@buildingcode=@submitter-location from WorkflowT00272new...
+TTGetList272: Fetch using @submitter-email=SPayne@medinacsd.org/@RoleName=AIDES/@buildingcode=@submitter-location on WorkflowT00272new
+Connected - Database: jdbc:mysql://fmportal.crw7rmbndgfd.us-east-1.rds.amazonaws.com:13306/CustomerData
+TTGetList: No data for @submitter-email=SPayne@medinacsd.org/@RoleName=AIDES/@buildingcode=@submitter-location in WorkflowT00272new
+TTGetList: Query: SELECT * FROM WorkflowT00272new WHERE (Employee = 'SPayne@medinacsd.org')  or (Employee = '' AND    ((Role = 'AIDES' and Building = '@submitter-location')  or (Role = 'AIDES' and Building = '')  or (Role = '' and Building = '@submitter-location')))  ORDER BY Employee desc, Role desc, Building
+[4] MSG=No data for @submitter-email=SPayne@medinacsd.org/@RoleName=AIDES/@buildingcode=@submitter-location

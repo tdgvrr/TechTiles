@@ -1,0 +1,110 @@
+#!/bin/bash
+
+# 
+# Script to stop the JMS services 
+#
+
+# Parse args for "-t" 
+
+tid=
+while getopts ht: name
+do
+    case $name in
+    t) tid="$OPTARG";;
+    ?) echo "Usage: $0: [-t tenantId] args" 
+       exit 0;;
+    esac
+done
+
+shift $(($OPTIND - 1))
+
+# Must have install directory (default: /appliance)
+
+if [ -z "$FMA_DIR" ]; then
+   export FMA_DIR=/appliance
+   if [ -f "/etc/TechTiles/Appliance" ]; then
+      if [ ! -z `grep -i "Type=MULTI" /etc/TechTiles/Appliance` ]; then
+         export ISMULTI=YES
+         if [ -z "$tid" ]; then
+            echo "Multi-tenant device - rerun with FMA_DIR set or use <-t tenant> parameter"
+            exit 4
+         fi
+         export FMA_DIR=/secure/tenant.$tid
+      fi
+   fi
+fi
+
+if [ ! -f "$FMA_DIR/conf/sysvars" ]; then
+   echo "Invalid configuration directory $FMA_DIR"
+   exit 4
+fi
+
+. $FMA_DIR/conf/sysvars
+
+cd $FMA_DIR/jms
+
+# Ask the service to terminate itself 
+
+groovy -cp ./lib/ac*.jar Stop.groovy $@
+sleep 1
+
+# Now, let's be sure
+
+shopt -s nocasematch
+
+if [ "$1" == "ALL" ]; then
+   LIST=`ls $FMA_DIR/data/*.pid 2> /dev/null`
+else
+   LIST=`ls $FMA_DIR/data/$1.pid 2> /dev/null`
+fi
+
+if [ "$?" -eq "0" ]; then
+   for i in $LIST 
+   do
+      pid=`cat $i | cut -f 2 -d =`
+      serv=`cat $i | cut -f 1 -d .`
+      rm $i
+      echo "Checking service $serv PID $pid" 
+      PSENT=`ps -ef | grep -i $serv.groovy | grep $pid`
+      if [ -z "$PSENT" ]; then
+         continue
+      fi
+      sleep 5
+      PSENT=`ps -ef | grep -i $serv.groovy | grep $pid`
+      if [ ! -z "$PSENT" ]; then
+         echo "Killing $pid"
+         kill $pid
+      fi
+   done
+fi
+
+if [ "$ISMULTI" == "YES" ]; then
+   # Anything named "$1.groovy" with "-DTenant=$TENANT" will be killed on a multi-tenant system
+   if [ "$1" == "ALL" ]; then
+      LIST=`ps -C java -o pid,cmd | grep -i "DTenant=$TENANT" | grep -i "groovy" | cut -f 1 -d ' '`
+   else
+      LIST=`ps -C java -o pid,cmd | grep -i "DTenant=$TENANT" | grep -i "$1.groovy" | cut -f 1 -d ' '`
+   fi
+else
+   # Anything named "$1.groovy" will be killed if it's a single-tenant system
+   if [ "$1" == "ALL" ]; then
+      LIST=`ps -C java -o pid,cmd | grep -i "groovy" | cut -f 1 -d ' '`
+   else
+      LIST=`ps -C java -o pid,cmd | grep -i "$1.groovy" | cut -f 1 -d ' '`
+   fi
+fi
+
+if [ ! -z "$LIST" ]; then
+   sleep 1
+   for i in $LIST
+   do
+      PSENT=`ps -ef | grep -i $serv.groovy | grep $i`
+      if [ ! -z "$PSENT" ]; then
+         echo "Killing stale process $i..."
+         kill $i
+      fi
+   done
+fi
+
+exit 0
+ 

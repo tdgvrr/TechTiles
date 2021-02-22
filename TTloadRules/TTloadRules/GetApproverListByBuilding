@@ -1,0 +1,56 @@
+#!/bin/bash
+
+# Query a list of approvers from a DB table
+#
+# GetApproverList <table> <key1> <key2> <key3> 
+#
+
+if [ -f "/etc/TechTiles/sysvars" ]; then
+   . /etc/TechTiles/sysvars
+fi
+
+export TENANT TTDB TTDBPORT TTDBUSER TTDBPASS
+
+DEBUG=1                   # Set to "1" to get additional debug messages
+DIR="/opt/TTloadRules"    # Install directory
+LOG=$DIR/logs/GetByBuiding-$$.out
+KEY1="$2"
+KEY2="$3"
+KEY3="$4"
+TABLE=$1
+
+echo "$0 Starting " `/bin/date` > $LOG
+
+if [ ! -z "$TTDEBUG" ]; then
+   DEBUG=1
+fi
+
+cd $DIR             # Be sure we run in our install directory
+
+if [ $DEBUG -eq 1 ]; then
+   echo "Command received: $@" >> $LOG
+fi
+
+if [ -z "$TABLE" ]; then
+  echo "Missing table name" >> $LOG
+  echo "MSG=No table"
+  exit 4
+fi
+
+if [ -z "$KEY1" ]; then 
+  echo "Missing search key" >> $LOG
+  echo "MSG=No search key"
+  exit 4
+fi
+
+# Fetch the list 
+
+echo "Fetching items for $KEY1/$KEY2/$KEY3 from $TABLE..." >> $LOG
+
+R1=`$DIR/TTGetListV2.groovy $TABLE "$KEY1" "$KEY2" "$KEY3" 2>> $LOG`
+RC=$?
+
+echo "[$RC] $R1" >> $LOG
+echo $R1
+exit $RC
+

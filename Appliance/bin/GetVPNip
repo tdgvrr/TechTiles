@@ -1,0 +1,4 @@
+#!/bin/bash
+
+ip addr show dev tun0 | grep inet | head -n 1 | cut -f 6 -d ' '
+

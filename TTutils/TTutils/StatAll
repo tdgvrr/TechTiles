@@ -1,0 +1,32 @@
+#!/bin/bash
+
+#
+# StatAll: Update the list of connected clients 
+#
+
+LOG=/var/log/TechTiles/StatAll.log
+INV=/var/log/TechTiles/Appliance.lst 
+STA=/var/log/openvpn.status
+NOW=`/bin/date`
+
+echo "--- $* starting at $NOW ---" > $LOG
+ 
+if [ ! -f "$INV" ]; then
+  echo "*Initialized $NOW*" > $INV
+fi
+
+for ip in `grep "^10.8" $STA | cut -f 1 -d ',' | sort -u`
+do
+   echo -e "Found IP: $ip"
+   ping -qW1 -c 1 "$ip" > /dev/null 2>&1 
+   if [ "$?" -ne "0" ]; then
+      echo "$ip is unreachable" | tee -a $LOG
+   else
+      grep "^$ip[[:space:]]" $INV > /dev/null 2>&1
+      if [ "$?" -ne "0" ]; then
+         /opt/TTutils/StatOne $ip >> $LOG 
+      else
+         echo "$ip already known" >> $LOG
+      fi
+   fi
+done

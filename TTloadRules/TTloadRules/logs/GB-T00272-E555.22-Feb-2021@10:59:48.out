@@ -1,0 +1,14 @@
+GetBuilding: 00272 @EmployeeID=555 @submitter-location=HS [EID=555]
+AppQuery args [00272, SELECT, DEFAULT, SELECT buildingcode FROM positionbuilding pb, building b WHERE b.buildingid = pb.buildingid AND pb.defaultflag = 1 AND pb.positionid = (SELECT positionid FROM appointment WHERE employeeid=555 AND primaryflag = 1)]
+JMS response queue is temp-queue://ID:fm.techtiles.net-43405-1614009596210-1:1:1
+JMS consumer queue is ActiveMQMessageConsumer { value=ID:fm.techtiles.net-43405-1614009596210-1:1:1:1, started=true }
+cConn: ActiveMQConnection {id=ID:fm.techtiles.net-43405-1614009596210-1:1,clientId=ID:fm.techtiles.net-43405-1614009596210-0:1,started=true}
+cSess: ActiveMQSession {id=ID:fm.techtiles.net-43405-1614009596210-1:1:1,started=true}
+pConni: ActiveMQConnection {id=ID:fm.techtiles.net-43405-1614009596210-3:1,clientId=ID:fm.techtiles.net-43405-1614009596210-2:1,started=true}
+pSessi: ActiveMQSession {id=ID:fm.techtiles.net-43405-1614009596210-3:1:1,started=true}
+cBroker: BrokerInfo {commandId = 0, responseRequired = false, brokerId = ID:fm.techtiles.net-40576-1593273978853-0:2, brokerURL = tcp://fm.techtiles.net:61616, slaveBroker = false, masterBroker = false, faultTolerantConfiguration = false, networkConnection = false, duplexConnection = false, peerBrokerInfos = null, brokerName = localhost, connectionId = 0, brokerUploadUrl = null, networkProperties = null}
+pBroker: BrokerInfo {commandId = 0, responseRequired = false, brokerId = ID:fm.techtiles.net-40576-1593273978853-0:2, brokerURL = tcp://fm.techtiles.net:61616, slaveBroker = false, masterBroker = false, faultTolerantConfiguration = false, networkConnection = false, duplexConnection = false, peerBrokerInfos = null, brokerName = localhost, connectionId = 0, brokerUploadUrl = null, networkProperties = null}
+Sending query <db><operation>SELECT</operation><dbname>DEFAULT</dbname><encodedquery>SELECT+buildingcode+FROM+positionbuilding+pb%2C+building+b+WHERE+b.buildingid+%3D+pb.buildingid+AND+pb.defaultflag+%3D+1+AND+pb.positionid+%3D+%28SELECT+positionid+FROM+appointment+WHERE+employeeid%3D555+AND+primaryflag+%3D+1%29</encodedquery></db>
+Received 0 bytes in 30221msec.
+WARNING: No response received
+Query complete

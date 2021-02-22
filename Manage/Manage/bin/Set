@@ -1,0 +1,148 @@
+#!/bin/bash
+
+GETFILE=/opt/TTutils/GetApplianceFile
+PUTFILE=/opt/TTutils/PutApplianceFile
+NOW=`/bin/date +%Y-%m-%d@%H:%M:%S`
+DEBUG=""
+
+echo "Enter Tenant ID: (5 digits)" 
+read tenant
+
+if [ -z "$tenant" ]; then
+   echo "ERROR: No Tenant supplied"
+   exit 8
+fi
+
+echo "Set - Tenant $tenant"
+
+echo "Available settings are: " 
+echo -e "LDAPHOST\tHostname or IP address of LDAP Server" 
+echo -e "LDAPUSER\tSystem account user name"
+echo -e "LDAPPASS\tPassword for system account"
+echo -e "LDAPDN  \tBase DN where users are defined"
+echo -e "LDAPDOMAIN\tDefault Windows domain in use (FMDOM)" 
+echo -e "LDAPDEFDMN\tDefault network domain (FMDOM.COM)" 
+echo -e "DBHOST  \tHostname or IP address of nVision database"
+echo -e "DBPORT  \tPort number for JDBC service on SQL Server (1433)"
+echo -e "DBSCHEMA\tDatabase/Schema name for nVision tables"
+echo -e "TPHOST  \tTimepiece database hostname"
+echo -e "TPPORT  \tTimepiece database port number"
+echo -e "TPSCHEMA\tTimepiece database Database/Schema name"
+echo " "
+
+echo "Enter configuration variable to set:"
+read kwd
+if [ -z "$kwd" ]; then
+   echo "ERROR: No keyword selected" 
+   exit 8
+fi
+
+k=$kwd
+echo "Enter new value for $kwd:"
+read val
+if [ -z "$val" ]; then
+   echo "ERROR: No value entered"
+   exit 8
+fi
+
+if [ "$tenant" -gt "00999" ]; then
+   export FMA_DIR=/secure/tenant.$tenant
+else
+   export FMA_DIR=/appliance
+fi
+file=$FMA_DIR/conf/sysvars
+prefix="export"
+com='\#'
+
+case $kwd in
+      TEST)
+         kwd="TT_TEST"
+         ;;
+      LDAPHOST)
+         kwd="AUTH_HOST"
+         ;;
+      LDAPUSER) 
+         kwd="AUTH_USER"
+         ;;
+      LDAPPASS) 
+         kwd="AUTH_PASS"
+         ;;
+      LDAPDN) 
+         kwd="AUTH_DN"
+         ;;
+      LDAPDOMAIN) 
+         kwd="AUTH_DOMAIN"
+         ;;
+      LDAPDEFDMN) 
+         kwd="AUTH_DEFDMN"
+         ;;
+      DBHOST)  
+         kwd="JMS_DBHOST"
+         ;;
+      DBPORT) 
+         kwd="JMS_DBPORT"
+         ;;
+      DBSCHEMA)
+         kwd="JMS_DBSCHEMA"
+         ;;
+      TPHOST)
+         file="$FMA_DIR/timepiece.DB"
+         kwd="dbhost"
+         prefix=""
+         ;; 
+      TPPORT)
+         file="$FMA_DIR/timepiece.DB"
+         kwd="dbport"
+         prefix=""
+         ;; 
+      TPSCHEMA)
+         file="$FMA_DIR/timepiece.DB"
+         kwd="dbschema"
+         prefix=""
+         ;; 
+
+      *)
+         echo "ERROR: Invalid keyword $kwd" 
+         exit 8
+         ;;
+esac
+
+if [ "$file" = *"sysvars"* ]; then
+   qopt=B
+else
+   qopt=Q
+fi
+
+echo "SET Tenant $tenant $k --> $val"
+if [ -d "/shared/Tenants/T$tenant" ]; then
+   mkdir -p /shared/Tenants/T$tenant/Updates
+   work=/shared/Tenants/T$tenant/Updates/`basename $file`-ORIGINAL.$NOW
+else
+   work=`tempfile -d /shared/temp -p SET- -s .$tenant`
+fi
+
+$GETFILE $tenant $file $work
+if [ ! -f "$work" ]; then
+   echo "ERROR: Can't fetch file from $tenant" 
+   exit 4
+fi
+
+if [ -z "$prefix" ]; then
+   /shared/FileEdit.groovy -q "$qopt" -a -c '#' -f "$work" -k "$kwd" -v "$val" 
+else
+   /shared/FileEdit.groovy -q "$qopt" -a -c '#' -f "$work" -k "$kwd" -v "$val" -p "$prefix" 
+fi
+
+if [ "$tenant" -gt "00999" ]; then
+   sudo $ROTMT $tenant "echo ::CMDSTART::;sudo /mnt/shared/PatchFile CHMOD 0666 $file" | sed '0,/::CMDSTART::/d' 2> /dev/null
+   $PUTFILE $tenant $work $file
+   sudo $ROTMT $tenant "echo ::CMDSTART::;sudo /mnt/shared/PatchFile CHMOD 0644 $file" | sed '0,/::CMDSTART::/d' 2> /dev/null
+else
+   sudo $ROT $tenant "echo ::CMDSTART::;sudo /mnt/shared/PatchFile CHMOD 0666 $file" | sed '0,/::CMDSTART::/d' 2> /dev/null
+   $PUTFILE $tenant $work $file
+   sudo $ROT $tenant "echo ::CMDSTART::;sudo /mnt/shared/PatchFile CHMOD 0644 $file" | sed '0,/::CMDSTART::/d' 2> /dev/null
+fi
+echo "Update complete - RC $?"
+
+exit 0
+

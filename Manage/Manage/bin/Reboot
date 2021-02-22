@@ -1,0 +1,30 @@
+#!/bin/bash
+
+echo "Enter Tenant ID: (5 digits)" 
+read tenant
+
+if [ -z "$tenant" ]; then
+   echo "ERROR: No Tenant supplied"
+   exit 8
+fi
+
+if [[ "$tenant" > "00999" ]]; then
+   echo "ERROR: This script currently doesn't support Multi-Tenant hosts"
+   exit 8
+fi
+
+echo "Rebooting will cause a service outage on tenant $tenant for up to 15 minutes" 
+echo "Are you sure you want to continue?"
+read ans
+
+if [[ $ans = Y* ]] || [[ $ans == y* ]] ; then
+   echo "Okay..."
+else
+   echo "Reboot aborted"
+   exit 4
+fi
+
+echo "Reboot Appliance for Tenant $tenant" 
+sudo $ROT $tenant "echo ::CMDSTART::;sudo /mnt/shared/PatchFile REBOOT" | sed '0,/::CMDSTART::/d' 2> /dev/null
+exit 0
+

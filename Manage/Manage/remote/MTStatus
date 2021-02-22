@@ -1,0 +1,29 @@
+#!/bin/bash
+
+FMA_DIR=/secure
+COLS=3
+
+if [ ! -d "$FMA_DIR" ]; then
+   echo "ERROR: Not a multi-tenant system"
+   exit 4
+fi
+
+for i in `ls -d $FMA_DIR/tenant.* 2> /dev/null`
+do
+   T=`echo $i | cut -f 2 -d '.'`
+   S="*Active*"
+   if [ -f "$i/conf/sysvars" ]; then
+      grep -i "^export FMA_DORM=YES" $i/conf/sysvars > /dev/null 2>&1
+      if [ "$?" -eq "0" ]; then
+         S=Inactive
+      fi
+   fi
+   output="$output\t Tenant $T $S"
+   if [ "$COLS" -eq "0" ]; then
+      output="$output\n"
+      COLS=3
+   else
+      COLS=`expr $COLS - 1`
+   fi
+done	
+echo -e "$output"

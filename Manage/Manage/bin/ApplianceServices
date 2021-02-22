@@ -1,0 +1,19 @@
+#!/bin/bash
+
+echo "Enter Tenant ID: (5 digits)" 
+read tenant
+
+if [ -z "$tenant" ]; then
+   echo "ERROR: No Tenant supplied"
+   exit 8
+fi
+
+echo "Appliance Service Status - Tenant $tenant" 
+if [[ "$tenant" > "00999" ]]; then
+  sudo $ROTMT $tenant "echo ::CMDSTART::;/mnt/shared/Manage/remote/ServiceStatus.sh $tenant" | sed '0,/::CMDSTART::/d' 2> /dev/null
+else
+  sudo $ROT $tenant "echo ::CMDSTART::;/appliance/bin/Status.sh" | sed '0,/::CMDSTART::/d' 2> /dev/null
+fi
+
+exit 0
+

@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Script to ensure smooth shutdowns
+
+logger "RC.SHUTDOWN unmount NFS"
+
+umount /mnt/shared &
+umount -falt nfs4&
+
+logger "RC.SHUTDOWN Complete"

@@ -1,0 +1,845 @@
+#!/bin/bash
+
+InitReq()
+{
+NVDBHOST="@UNCHANGED@"
+NVDBPORT="@UNCHANGED@"
+NVDBNAME="@UNCHANGED@"
+NVDBUSER="@UNCHANGED@"
+NVDBPASS="@UNCHANGED@"
+TPDBHOST="@UNCHANGED@"
+TPDBPORT="@UNCHANGED@"
+TPDBNAME="@UNCHANGED@"
+TPDBUSER="@UNCHANGED@"
+TPDBPASS="@UNCHANGED@"
+
+LDAPHOST="@UNCHANGED@"
+LDAPUSER="@UNCHANGED@"
+LDAPPASS="@UNCHANGED@"
+LDAPBASE="@UNCHANGED@"
+LDAPDOMN="@UNCHANGED@"
+LDAPDEFD="@UNCHANGED@"
+
+NETDHCP="@UNCHANGED@"
+NETIP="@UNCHANGED@"
+NETMASK="@UNCHANGED@"
+NETGW="@UNCHANGED@"
+NETDNS1="@UNCHANGED@"
+NETDNS2="@UNCHANGED@"
+NETDNS3="@UNCHANGED@"
+NETDNS4="@UNCHANGED@"
+}
+
+WriteReq()
+{
+
+if [ ! -z "$TPDBHOST" ]; then
+   if [[ -z "$TPDBUSER" && ! -z "$NVDBUSER" ]]; then 
+      TPDBUSER=$NVDBUSER
+   fi
+   if [[ -z "$TPDBPASS" && ! -z "$NVDBPASS" ]]; then 
+      TPDBPASS=$NVDBPASS
+   fi
+   if [[ -z "$TPDBPORT" && ! -z "$NVDBPORT" ]]; then 
+      TPDBPORT=$NVDBPORT
+   fi
+fi
+
+echo "# Request submitted $NOW" > $FILE
+
+echo "NVDBHOST=$NVDBHOST" >> $FILE
+echo "NVDBPORT=$NVDBPORT" >> $FILE
+echo "NVDBNAME=$NVDBNAME" >> $FILE
+echo "NVDBUSER=$NVDBUSER" >> $FILE
+echo "NVDBPASS=$NVDBPASS" >> $FILE
+echo "TPDBHOST=$TPDBHOST" >> $FILE
+echo "TPDBPORT=$TPDBPORT" >> $FILE
+echo "TPDBNAME=$TPDBNAME" >> $FILE
+echo "TPDBUSER=$TPDBUSER" >> $FILE
+echo "TPDBPASS=$TPDBPASS" >> $FILE
+
+echo "LDAPHOST=$LDAPHOST" >> $FILE
+echo "LDAPUSER=$LDAPUSER" >> $FILE
+echo "LDAPPASS=$LDAPPASS" >> $FILE
+echo "LDAPBASE=$LDAPBASE" >> $FILE
+echo "LDAPDOMN=$LDAPDOMN" >> $FILE
+echo "LDAPDEFD=$LDAPDEFD" >> $FILE
+
+echo "NETDHCP=$NETDHCP"   >> $FILE
+echo "NETIP=$NETIP"       >> $FILE
+echo "NETMASK=$NETMASK"   >> $FILE
+echo "NETGW=$NETGW"       >> $FILE
+echo "NETDNS1=$NETDNS1"   >> $FILE
+echo "NETDNS2=$NETDNS2"   >> $FILE
+echo "NETDNS3=$NETDNS3"   >> $FILE
+echo "NETDNS4=$NETDNS4"   >> $FILE
+}
+
+function IsConfig()
+{
+    if [ ! -f "/appliance/conf/sysvars" ]; then 
+       echo "IsConfig: No sysvars" >> $LOG
+       return 0
+    fi
+
+    grep -v "#" /appliance/conf/sysvars | grep "FMA_DORM"
+    if [ $? -eq 1 ]; then
+       echo "IsConfig: non-DORMANT system" >> $LOG 
+       return 1
+    fi
+    echo "IsConfig: DORMANT system" >> $LOG
+    return 0
+}
+
+function IsIp()
+{
+    if [ -z "$1" ]; then
+       return 1
+    fi
+
+    local  ip=$1
+    local  stat=1
+
+    if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+        OIFS=$IFS
+        IFS='.'
+        ip=($ip)
+        IFS=$OIFS
+        [[ ${ip[0]} -le 255 && ${ip[1]} -le 255 \
+            && ${ip[2]} -le 255 && ${ip[3]} -le 255 ]]
+        stat=$?
+    fi
+    return $stat
+}
+
+GetDB()
+{
+ var=`grep -v "^#" $1 | grep "$2" | cut -f 2 -d "="`
+ var=`eval echo $var`
+ if [ -z "$var" ]; then
+    echo "WARNING: No $2 found in configuration" | tee -a $LOG
+    return 0
+ fi
+
+ if [[ "$var" == *."%DB".* ]]; then
+    echo "WARNING: Unitialized $2 found in configuration" | tee -a $LOG
+    var=""
+    return 0
+ fi
+ return 1
+}
+
+IsNetUp()
+{
+ NETSTAT="DOWN"
+
+ for i in `find /sys/class/net -name "e*"` 
+ do
+    if [ -f "$i/carrier" ]; then
+       x=`cat $i/carrier`
+       if [ "$x" = "1" ]; then
+          NETSTAT="UP"
+          echo "Network appears $NETSTAT" >> $LOG
+          return 1
+       fi 
+    fi
+ done
+ 
+ echo "Network appears $NETSTAT" >> $LOG
+} 
+
+IsDhcp()
+{
+  static=`grep -v "^#" /etc/network/interfaces | grep "$i" | grep "static"`
+  if [ ! -z "$static" ]; then
+      NETDHCP="NO"
+      echo "STATIC Network Configuration" >> $LOG
+      grep -E "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" /etc/network/interfaces >> $LOG
+      return 0
+  else
+      NETDHCP="YES"
+      echo "DHCP Network Configuration" >> $LOG
+      return 1
+  fi
+}
+
+GetDbParams()
+{
+  if [ "$NVDBHOST" = "@UNCHANGED@" ]; then
+      NVDBHOST=`eval echo $JMS_DBHOST`
+      NVDBPORT=`eval echo $JMS_DBPORT`
+      NVDBNAME=`eval echo $JMS_DBSCHEMA`     
+      NVDBUSER=`eval echo $JMS_DBUSER`     
+      NVDBPASS=`eval echo $JMS_DBPASS`     
+     
+      if [[ "$NVDBHOST" == "%DB"* ]]; then 
+         NVDBHOST=""
+      fi
+      if [[ "$NVDBPORT" == "%DB"* ]]; then 
+         NVDBPORT="1433"
+      fi
+      if [[ "$NVDBNAME" == "%DB"* ]]; then 
+         NVDBNAME=""
+      fi
+      if [[ "$NVDBUSER" == "%DB"* ]]; then 
+         NVDBUSER=""
+      fi
+      if [[ "$NVDBPASS" == "%DB"* ]]; then 
+         NVDBPASS=""
+      fi
+
+      HASTP=NO
+      i=`ls $FMA_DIR/conf | grep -i timepiece.db`
+      i=$FMA_DIR/conf/$i
+      GetDB "$i" "dbhost"
+      TPDBHOST="$var"
+      GetDB "$i" "dbport"
+      TPDBPORT="$var" 
+      GetDB "$i" "dbschema"
+      TPDBNAME="$var"
+      GetDB "$i" "dbuser"
+      TPDBUSER="$var"
+      GetDB "$i" "dbpass"
+      TPDBPASS="$var"
+      if [ ! -z "$TPDBHOST" ]; then
+         HASTP=YES
+      fi
+  fi
+     
+  echo "NVDBHOST: $NVDBHOST" >> $LOG
+  echo "NVDBPORT: $NVDBPORT" >> $LOG
+  echo "NVDBUSER: $NVDBUSER" >> $LOG
+  echo "NVDBPASS: $NVDBPASS" >> $LOG
+  echo "NVDBNAME: $NVDBNAME" >> $LOG
+  echo "TPDBHOST: $TPDBHOST" >> $LOG
+  echo "TPDBPORT: $TPDBPORT" >> $LOG
+  echo "TPDBUSER: $TPDBUSER" >> $LOG
+  echo "TPDBPASS: $TPDBPASS" >> $LOG
+  echo "TPDBNAME: $TPDBNAME" >> $LOG
+}
+
+GetLdapParams()
+{
+  if [ "$LDAPHOST" = "@UNCHANGED@" ]; then
+      LDAPHOST=`eval echo $AUTH_HOST`
+      LDAPUSER=`eval echo $AUTH_USER` 
+      LDAPPASS=`eval echo $AUTH_PASS`
+      LDAPBASE=`eval echo $AUTH_DN`
+      LDAPDOMN=`eval echo $AUTH_DOMAIN`
+      LDAPDEFD=`eval echo $AUTH_DEFDMN`
+  fi
+
+  if [[ "$LDAPHOST" == "%LDAP"* ]]; then 
+         LDAPHOST=""
+  fi
+  if [[ "$LDAPUSER" == "%LDAP"* ]]; then 
+         LDAPUSER=""
+  fi
+  if [[ "$LDAPPASS" == "%LDAP"* ]]; then 
+         LDAPPASS=""
+  fi
+  if [[ "$LDAPBASE" == "%LDAP"* ]]; then 
+         LDAPBASE=""
+  fi
+  if [[ "$LDAPDOMN" == "%LDAP"* ]]; then 
+         LDAPDOMN=""
+  fi
+  if [[ "$LDAPDEFD" == "%LDAP"* ]]; then 
+         LDAPDEFD=""
+  fi
+}
+
+GetNetParams()
+{
+ IsNetUp
+ IsDhcp
+
+ if [ -z `ls -d /sys/class/net/t*` ]; then
+    NETTUN=""
+ else
+    NETTUN=`grep -i interface /sys/class/net/t*/uevent | cut -f 2 -d '='`
+ fi
+
+ for i in `ls /sys/class/net 2> /dev/null` 
+ do
+     if [[ $i != "e"* ]]; then
+        continue
+     fi
+     state=`cat /sys/class/net/$i/operstate 2> /dev/null | tr '[a-z]' '[A-Z]'`
+     NETMAC=`cat /sys/class/net/$i/address 2> /dev/null`
+     echo "Network device $i is $state MAC $NETMAC" >> $LOG
+     if [ "$state" = "UP" ]; then
+        NETIP=`ifconfig $i | grep -i "inet addr" | cut -f 2 -d ':' | cut -f 1 -d ' '`
+        NETMASK=`ifconfig $i | grep -i "mask:" | cut -f 4 -d ":"`
+        NETGW=`ip route | awk '/^default/ { print $3 }'`
+        ns=`cat /etc/resolv.conf | grep -v "^#" | grep -v 127.0 | grep nameserv`
+        c=`echo $ns | wc -l`
+        if [ $c -gt 0 ]; then
+           NETDNS1=`echo $ns | head -n 1 | cut -f 2- -d' '`
+        else
+           NETDNS1=""
+        fi 
+        if [ $c -gt 1 ]; then
+           NETDNS2=`echo $ns | grep -v $NETDNS1 | head -n 1 | cut -f 2- -d' '`
+        else
+           NETDNS2=""
+        fi
+        if [ $c -gt 2 ]; then
+           NETDNS3=`echo $ns | grep -v $NETDNS1 | grep -v $NETDNS2 | head -n 1 | cut -f 2- -d' '`
+        else
+           NETDNS3=""
+        fi
+        if [ $c -gt 3 ]; then
+           NETDNS4=`echo $ns | grep -v $NETDNS1 | grep -v $NETDNS2 | grep -v $NETDNS3 | head -n 1 | cut -f 2- -d' '`
+        else
+           NETDNS4=""
+        fi
+     else
+        echo "Read state from /etc/network/interfaces" >> $LOG
+        x=`grep -v "^#" /etc/network/interfaces | egrep -v "loopback|source|auto|^$"`
+        echo $x | grep -i dhcp
+        if [ $? -eq 0 ]; then
+           NETIP=""
+           NETMASK=""
+           NETGW=""
+           NETDNS1=""
+           NETDNS2=""
+           NETDNS3=""
+           NETDNS4=""
+           return
+        fi
+        NETIP=`echo $x | grep -i address | cut -f 2- -d ' '` 
+        NETIP=`echo $NETIP`
+        NETMASK=`echo $x | grep -i mask    | cut -f 2- -d ' '`
+        NETMASK=`echo $NETMASK`
+        NETGW=`echo $x | grep -i gateway   | cut -f 2- -d ' '` 
+        NETGW=`echo $NETGW`
+        x=`echo $x | grep -i names | cut -f 2- -d ' '` 
+        x=`echo $x`
+        NETDNS1=`echo $x | cut -f 1 -d ' '`       
+        NETDNS2=`echo $x | cut -f 2 -d ' '`       
+        NETDNS3=`echo $x | cut -f 3 -d ' '`       
+        NETDNS4=`echo $x | cut -f 4 -d ' '`       
+     fi
+ done
+}
+
+ShowTest()
+{
+  echo "100" | dialog --title "$TITLE" --gauge "\nTests Complete" 8 50 100
+  sleep 1  
+  dialog --title "$TITLE:Test Results" --textbox "$OUT" 24 120
+  rm $OUT 2> /dev/null
+}
+
+DoTest()
+{
+  GetNetParams 
+  GetDbParams
+  GetLdapParams
+  RETURN=return
+# RETURN=""          # Testing: Doesn't stop on errors
+
+  dialog --title "$TITLE" --msgbox "\n\nPlease ensure that all configuration updates have been applied and the appliance rebooted prior to running tests." 12 50
+  OUT=`mktemp`
+
+  echo "0" | dialog --title "$TITLE" --gauge "\nTests start..." 8 50 0 
+  echo "Test Results from Test at $NOW" > $OUT
+  echo " " >> $OUT
+  
+  echo "10" | dialog --title "$TITLE" --gauge "\nCheck network..." 8 50 10 
+  echo "Check system network status..." >> $OUT
+  if [ "$NETSTAT" != "UP" ]; then
+     echo "FAIL: Network does not appear to be connected - check cables, firewall and network configuration" >> $OUT
+     ShowTest
+     $RETURN
+  else
+     echo "OKAY: Network is $NETSTAT using IP address $NETIP" >> $OUT
+  fi 
+
+  echo "20" | dialog --title "$TITLE" --gauge "\nCheck network..." 8 50 20 
+  echo "Check connection to cloud service (FM.TECHTILES.NET)..." >> $OUT
+  x=`wget -O /dev/null -nv 'http://fm.techtiles.net' 2>&1`
+  if [ "$?" -ne "0" ]; then
+     echo $x >> $OUT
+     echo "FAIL: Can't connect to cloud service - check cables, firewall and network configuration" >> $OUT
+     ShowTest
+     $RETURN
+  fi
+  echo "OKAY: Cloud server online" >> $OUT
+
+  echo "30" | dialog --title "$TITLE" --gauge "\nCheck network..." 8 50 30 
+  echo "Check secure network tunnel status" >> $OUT
+  if [ -z "$NETTUN" ]; then
+     echo "FAIL: No secure network tunnel device found - check network configuration" >> $OUT
+     ShowTest
+     $RETURN
+  fi
+  x=`ifconfig $NETTUN | grep -i packet`
+  if [ -z "$x" ]; then
+     echo "FAIL: Secure network tunnel exists but isn't communicating" >> $OUT
+     ShowTest
+     $RETURN
+  fi
+  echo "$x" >> $OUT
+  x=`ping -qc 1 10.8.0.1 | grep avg`
+  echo "$x" >> $OUT  
+  echo "OKAY: Secure network tunnel operating" >> $OUT
+
+  echo "40" | dialog --title "$TITLE" --gauge "\nCheck data transfer..." 8 50 40 
+  echo "Check network data cache" >> $OUT
+  df /mnt/shared > /dev/null 2>&1
+  if [ "$?" -ne "0" ]; then
+     echo "WARN: Network data cache not found" >> $OUT
+  else
+     echo "OKAY: Network data cache found" >> $OUT   
+  fi
+
+  echo "50" | dialog --title "$TITLE" --gauge "\nCheck nVision database..." 8 50 50 
+  echo "Check nVision database connectivity" >> $OUT 
+  groovy $DBCONN "$NVDBHOST" "$NVDBPORT" "$NVDBNAME" "$NVDBUSER" "$NVDBPASS" >> $OUT
+  if [ "$?" -gt "0" ]; then
+     echo "FAIL: Can't connect to nVision Database" >> $OUT
+     ShowTest
+     $RETURN
+  else
+     echo "OKAY: nVision Database service responding" >> $OUT   
+  fi
+
+  if [ "$HASTP" != "NO" ]; then
+  echo "60" | dialog --title "$TITLE" --gauge "\nCheck Timepiece database..." 8 50 60 
+  echo "Check Timepiece database connectivity" >> $OUT 
+  groovy $DBCONN "$TPDBHOST" "$TPDBPORT" "$TPDBNAME" "$TPDBUSER" "$TPDBPASS" >> $OUT
+  if [ "$?" -gt "0" ]; then
+     echo "FAIL: Can't connect to Timepiece Database" >> $OUT
+     ShowTest
+     $RETURN
+  else
+     echo "OKAY: Timepiece Database service responding" >> $OUT   
+  fi
+  fi
+
+  echo "70" | dialog --title "$TITLE" --gauge "\nCheck Active Directory/LDAP..." 8 50 70  
+  echo "Check Active Directory/LDAP connectivity" >> $OUT 
+  x=`ping -qc 1 "$LDAPHOST"`
+  if [ $? -ne 0 ]; then
+     echo "WARN: LDAP host $LDAPHOST doesn't respond to ping" >> $OUT
+  fi
+  u="$LDAPUSER@$LDAPDOMN" 
+  x=`ldapsearch -l 5 -o nettimeout=5 -LLL -x -H "ldap://$LDAPHOST" -D "$u" -w "$LDAPPASS" -b "$LDAPBASE" "(samaccountname=$LDAPUSER)" 2>&1 < /dev/null`
+  if [ $? -ne 0 ]; then
+     echo "FAIL: LDAP System Account $LDAPUSER can't be authenticated using host $LDAPHOST" >> $OUT
+     echo "    $x" >> $OUT
+     ShowTest
+     $RETURN
+  fi 
+
+  echo " " >> $OUT
+  echo "Tests complete!" >> $OUT
+  ShowTest  
+}
+
+SetNet()
+{
+  GetNetParams
+  
+  FORM="\nNetwork device MAC address is $NETMAC\n\nChoose dynamic (DHCP) or static networking (DHCP is recommended if you have an available DHCP server):" 
+  if [ "$NETDHCP" = "YES" ]; then
+      dialog --title "Network Settings (current status $NETSTAT with DHCP)" \
+             --radiolist "$FORM" 16 80 0 \
+             "DHCP"   "System automatically assigns a network address" "on"  \
+             "Static"  "Manual network configuration" "off" \
+             2> $RESULT
+  else
+       dialog --title "Network Settings (current status $NETSTAT with static address $NETIP)" \
+             --radiolist "$FORM" 16 80 0 \
+             "DHCP"   "System automatically assigns a network address" "off"  \
+             "Static"  "Manual network configuration" "on" \
+             2> $RESULT
+  fi
+
+  NET=`cat $RESULT`
+  echo "Net DHCP/STATIC: $NET" >> $LOG
+  
+  if [ -z "$NET" ]; then
+      dialog --title "$TITLE" --msgbox "\n\nERROR - You must select DHCP or STATIC Networking" 12 50
+      return         
+  fi
+
+  if [ "$NET" = "DHCP" ]; then
+      dialog --title "$TITLE" --yesno "\nSet network to DHCP?" 10 80
+      if [ "$?" -ne 0 ]; then
+          echo "DHCP change not confirmed" >> $LOG
+          CONFIRM=0
+      else
+          NETDHCP=YES
+          NETIP=""
+          NETMASK=""
+          NETGW=""
+          NETDNS1=""
+          NETDNS2=""
+          NETDNS3=""
+          NETDNS4=""
+          CONFIRM=1
+      fi
+      return
+  fi
+ 
+  echo "Show static network parameter form" >> $LOG
+
+  NETDHCP=NO
+  FORM="\nSpecify network parameters for static networking. All parameters are required, except for backup DNS Servers (2-4):" 
+  dialog --title "Network Settings" \
+             --form "$FORM" 24 80 0 \
+             "IP Address:     "   1 0 "$NETIP"    1 26 16 0 \
+             "Network Mask:   "   2 0 "$NETMASK"  2 26 16 0 \
+             "Default Gateway:"   3 0 "$NETGW"    3 26 16 0 \
+             "DNS Server 1:   "   4 0 "$NETDNS1"  4 26 255 0 \
+             "DNS Server 2:   "   5 0 "$NETDNS2"  5 26 255 0 \
+             "DNS Server 3:   "   6 0 "$NETDNS3"  6 26 255 0 \
+             "DNS Server 4:   "   7 0 "$NETDNS4"  7 26 255 0 \
+             2> $RESULT
+
+  echo "Net form config results" >> $LOG    
+  item=0
+
+  while read -r x || [[ -n "$x" ]]; 
+  do
+      item=$((item+1))
+      echo "Net form item $item is $x" >> $LOG
+      if [ "$item" -eq "1" ]; then
+          if IsIp $x; then NETIP=$x; else NETIP=error; fi
+      fi
+      if [ "$item" -eq "2" ]; then
+          if IsIp $x; then NETMASK=$x; else NETMASK=error; fi
+      fi
+      if [ "$item" -eq "3" ]; then
+          if IsIp $x; then NETGW=$x; else NETGW=error; fi
+      fi
+      if [ "$item" -eq "4" ]; then
+          if IsIp $x; then NETDNS1=$x; else NETDNS1=error; fi
+      fi
+      if [ "$item" -eq "5" ]; then
+          if [ -z "$x" ]; then
+             NETDNS2=""
+          else
+             if IsIp $x; then NETDNS2=$x; else NETDNS2=error; fi
+          fi
+      fi
+      if [ "$item" -eq "6" ]; then
+          if [ -z "$x" ]; then
+             NETDNS3=""
+          else
+             if IsIp $x; then NETDNS3=$x; else NETDNS3=error; fi
+          fi
+      fi
+      if [ "$item" -eq "7" ]; then
+          if [ -z "$x" ]; then
+             NETDNS4=""
+          else
+             if IsIp $x; then NETDNS4=$x; else NETDNS4=error; fi
+          fi
+      fi
+
+      done < $RESULT
+
+      if [ "$NETIP"   = "error"  -o \
+           "$NETMASK" = "error"  -o \
+           "$NETGW"   = "error"  -o \
+           "$NETDNS1" = "error"  -o \
+           "$NETDNS2" = "error"  -o \
+           "$NETDNS3" = "error"  -o \
+           "$NETDNS4" = "error"  ]; then
+         dialog --title "$TITLE" --msgbox "\n\nERROR - Invalid network parameters" 12 50
+         return         
+      fi
+     
+      MSG="\n\nIP Address: $NETIP\nNetmask:    $NETMASK\nGateway:    $NETGW\nDNS #1:     $NETDNS1\nDNS #2:     $NETDNS2\nDNS #3:     $NETDNS3\nDNS #4:     $NETDNS4\n" 
+      dialog --title "$TITLE" --yesno "Change network configuration to: $MSG" 24 80
+      if [ "$?" -ne 0 ]; then
+          echo "Change not confirmed" >> $LOG
+          CONFIRM=0
+      fi
+      echo "Saving changes" >> $LOG
+      CONFIRM=1
+
+      echo "Static Networking Parameters: " >> $LOG
+      echo "NETDHCP=$NETDHCP" >> $LOG
+      echo "NETIP=$NETIP"     >> $LOG
+      echo "NETMASK=$NETMASK" >> $LOG
+      echo "NETGW=$NETGW"     >> $LOG
+      echo "NETDNS1=$NETDNS1" >> $LOG
+      echo "NETDNS2=$NETDNS2" >> $LOG
+      echo "NETDNS3=$NETDNS3" >> $LOG
+      echo "NETDNS4=$NETDNS4" >> $LOG
+      CONFIRM=1
+}
+
+SetLDAP()
+{     
+      GetLdapParams 
+
+      FORM="Specify AD/LDAP host (hostname or IP address), system account/password, base DN and default domain for your environment:" 
+      dialog --title "ActiveDirectory/LDAP Settings" \
+             --form "$FORM" 18 80 0 \
+             "LDAP Host:  "          1 0 "$LDAPHOST" 1 26 255 0 \
+             "System User:  "        2 0 "$LDAPUSER" 2 26 64 0 \
+             "System Password:"      3 0 "$LDAPPASS" 3 26 64 0 \
+             "Base DN:  "            4 0 "$LDAPBASE" 4 26 255 0 \
+             "Auth domain:  "        5 0 "$LDAPDOMN" 5 26 255 0 \
+             "Default user domain:"  6 0 "$LDAPDEFD" 6 26 255 0 \
+             2> $RESULT
+
+      echo "LDAP form config results" >> $LOG    
+      item=0
+      while read -r x || [[ -n $x ]]; 
+      do
+          item=$((item+1))
+          echo LDAP form item $item is $x >> $LOG
+          if [ "$item" -eq "1" ]; then
+             LDAPHOST="$x"
+          fi
+          if [ "$item" -eq "2" ]; then
+             LDAPUSER="$x"
+          fi
+          if [ "$item" -eq "3" ]; then
+             LDAPPASS="$x"
+          fi
+          if [ "$item" -eq "4" ]; then
+             LDAPBASE="$x"
+          fi
+          if [ "$item" -eq "5" ]; then
+             LDAPDOMN="$x"
+          fi
+          if [ "$item" -eq "6" ]; then
+             LDAPDEFD="$x"
+          fi
+      done < $RESULT
+      
+      if [ -z "$LDAPHOST" ]; then
+         dialog --title "$TITLE" --msgbox "\n\nERROR - AD/LDAP hostname is required" 12 50
+         return         
+      fi 	
+      
+      MSG="LDAP Host:            $LDAPHOST\nLDAP System User:     $LDAPUSER\nLDAP System Password: $LDAPPASS\nLDAP Base DN:         $LDAPBASE\nLDAP Auth Domain:     $LDAPDOMN\nLDAP User Domain:     $LDAPDEFD"  
+
+      echo $MSG >> $LOG 
+      dialog --title "$TITLE" --yesno "Change configuration to:\n\n$MSG" 24 80
+      if [ "$?" -ne 0 ]; then
+          echo "Change not confirmed" >> $LOG
+          CONFIRM=0
+      fi
+      echo "Saving changes" >> $LOG
+      CONFIRM=1
+}
+
+SetDB()
+{     
+      GetDbParams
+
+      FORM="Specify Host (hostname or IP address), Port and Schema name for your nVision and (optionally) Timepiece databases:" 
+      dialog --title "DB Settings" \
+             --form "$FORM" 18 80 0 \
+             "---nVision---"    2 1 "REQUIRED" 2 16 0 0 \
+             "DB Host:  "       3 4 "$NVDBHOST " 3 16 255 0 \
+             "DB Port:  "       4 4 "$NVDBPORT"  4 16 6 0 \
+             "DB Schema:"       5 4 "$NVDBNAME "  5 16 32 0 \
+             "---Timepiece---"  7 1 "OPTIONAL (leave blank if not a Timepiece customer)" 7 16 0 0 \
+             "DB Host:  "       8 4 "$TPDBHOST" 8 16 255 0 \
+             "DB Port:  "       9 4 "$TPDBPORT"  9 16 6 0 \
+             "DB Schema:"      10 4 "$TPDBNAME" 10 16 32 0 \
+             2> $RESULT
+
+      echo "DB form config results" >> $LOG    
+      item=0
+      while read -r x || [[ -n $x ]]; 
+      do
+          item=$((item+1))
+          echo DB form item $item is $x >> $LOG
+          if [ "$item" -eq "1" ]; then
+             NVDBHOST=$x
+          fi
+          if [ "$item" -eq "2" ]; then
+             NVDBPORT=$x
+          fi
+          if [ "$item" -eq "3" ]; then
+             NVDBNAME=$x
+          fi
+          if [ "$item" -eq "4" ]; then
+             TPDBHOST=$x
+          fi
+          if [ "$item" -eq "5" ]; then
+             TPDBPORT=$x
+          fi
+          if [ "$item" -eq "6" ]; then
+             TPDBNAME=$x
+          fi
+      done < $RESULT
+      
+      IsTp=1
+
+      if [ -z "$NVDBHOST" ]; then
+         dialog --title "$TITLE" --msgbox "\n\nERROR - nVision DB hostname is required" 12 50
+         return         
+      fi 	
+      if [ -z "$NVDBNAME" ]; then
+         dialog --title "$TITLE" --msgbox "\n\nERROR - nVision DB schema name is required" 12 50
+         return        
+      fi 	
+      if [ -z "$NVDBPORT" ]; then
+         NVDBPORT=1433
+      fi 	
+
+      if [ -z "$TPDBHOST" ]; then
+         IsTp = 0
+      fi
+      if [ -z "$TPDBNAME" ]; then
+         IsTp = 0
+      fi
+      if [ -z "$TPDBPORT" ]; then
+         TPDBPORT=1433 
+      fi
+
+      MSG="nVision  DB Host:   $NVDBHOST\nnVision  DB Port:   $NVDBPORT\nnVision  DB Schema: $NVDBNAME\n"  
+
+      if [ $IsTp -eq 0 ]; then
+         MSG="$MSG\nNo Timepiece Database specified"
+      else
+         MSG="$MSG\nTimepiece DB Host:   $TPDBHOST\nTimepiece DB Port:   $TPDBPORT\nTimepiece DB Schema: $TPDBNAME\n"
+      fi 
+      echo $MSG >> $LOG 
+      dialog --title "$TITLE" --yesno "Change configuration to:\n$MSG" 24 80
+      if [ "$?" -ne 0 ]; then
+          echo "Change not confirmed" >> $LOG
+          CONFIRM=0
+      fi
+      echo "Saving changes" >> $LOG
+      CONFIRM=1
+}
+
+FMA_DIR=/appliance
+
+. $FMA_DIR/conf/sysvars 
+
+NOW=`/bin/date +%Y-%m-%d@%H:%M:%S`
+TITLE="OptiGate Appliance for Tenant $TENANT"
+RESULT=`mktemp`
+CFGFILE="$HOME/ConfigReport"
+EXIT=NO
+LOG=~/Config.log
+FILE=~setup/settings.req
+DBCONN=$FMA_DIR/jms/DbConn.groovy
+CONFIRM=0
+
+if [ -f "$FILE" ]; then
+   dialog --clear
+   MSG="\n\nWARNING: A previous configuration change is still pending and has not been applied. If you continue, all prior changes will be lost.\n\nSelect YES to continue and delete pending changes, or NO to reboot and process pending changes."
+   dialog --title "$TITLE" --yesno "$MSG" 18 50
+   if [ "$?" -ne "0" ]; then
+      exit 0
+   else
+      rm -f $FILE
+   fi
+fi
+
+echo "CONFIG Starts" > $LOG
+/bin/date >> $LOG
+
+InitReq
+
+while [ "$EXIT" != "YES" ]
+do 
+  dialog --clear
+  dialog --title "$TITLE" \
+         --nocancel \
+         --menu "Select an option:" 24 80 8 \
+         SHOW    "Show System Configuration" \
+         DB      "Set Database Parameters" \
+         LDAP    "Set LDAP/Active Directory Parameters" \
+         NET     "Set Network Parameters" \
+         TEST    "Test connectivity to required resources" \
+         EXIT    "Save and activate changes next reboot" \
+         INSTALL "Save changes and reboot immediately" \
+         CANCEL  "Discard any changes made this session" \
+         2> $RESULT
+
+  echo "User selects menu item " `cat $RESULT` >> $LOG
+
+  case `cat $RESULT` in 
+  SHOW)
+      if IsConfig; then 
+         dialog --title "$TITLE" --msgbox " This system is not yet configured " 6 50
+         continue
+      fi
+      $FMA_DIR/bin/show_config > $CFGFILE 2>&1
+      dialog --title "$TITLE:Configuration" --textbox "$CFGFILE" 24 80
+      if [ -f "$CFGFILE" ]; then
+         rm $CFGFILE 2> /dev/null
+      fi
+  ;;
+
+  DB)
+      SetDB 
+  ;;
+
+  LDAP)
+      SetLDAP
+  ;;
+
+  NET)
+      SetNet
+  ;;
+
+  TEST)
+      DoTest 
+  ;;
+
+  EXIT)
+      EXIT=YES
+      REBOOT=0
+  ;;
+
+  INSTALL) 
+     EXIT=YES
+     REBOOT=1
+  ;;
+
+  CANCEL)
+      dialog --title "$TITLE" --yesno "Are you sure you want to discard all changes?" 6 50
+      if [ "$?" -eq "0" ]; then
+         InitReq
+         CONFIRM=0
+      fi
+  ;;
+
+  *)
+  ;;
+  esac
+done
+
+clear
+
+if [ -f "$FILE" ]; then
+   rm -f "$FILE"
+fi
+
+if [ "$CONFIRM" -eq "1" ]; then
+   WriteReq
+   echo "Changes confirmed - saving request file" >> $LOG
+   if [ -f "$RESULT" ]; then
+      rm $RESULT 2> /dev/null
+   fi
+fi
+
+if [ "$REBOOT" = "1" ]; then
+      dialog --title "$TITLE" --yesno "Changes will be applied and the appliance rebooted. Continue? " 6 50
+      if [ "$?" -eq "0" ]; then
+         echo "Unmounting share and rebooting" >> $LOG
+         sync
+         sudo /bin/umount /mnt/shared >> $LOG 2>&1 
+         sudo /sbin/reboot >> $LOG 2>&1
+      fi
+fi
+ 
+exit 0
+

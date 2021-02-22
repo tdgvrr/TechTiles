@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+<h2>Important: About Your Recent ${form} request</h2>
+<p>
+ This email contains an important document generated during processing of your recent ${form} request. Please keep a copy of this document for your records. 
+ <p>
+ &nbsp;
+ <p>
+ ${timestamp}
+ <br /> <br /> <hr />
+ &copy; 2018, TechTiles LLC - Connect, Simplify, Extend
+ </body>
+ </html>

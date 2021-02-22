@@ -1,0 +1,8 @@
+/opt/TTloadRules/GetApproverListByBuilding Starting  Tue Feb 16 09:05:44 EST 2021
+Command received: WorkflowT00101new @submitter-email=cvisintin@wfsd.k12.ny.us @submitter-role=DO CLR @submitter-location=102
+Fetching items for @submitter-email=cvisintin@wfsd.k12.ny.us/@submitter-role=DO CLR/@submitter-location=102 from WorkflowT00101new...
+TTGetList272: Fetch using @submitter-email=cvisintin@wfsd.k12.ny.us/@submitter-role=DO CLR/@submitter-location=102 on WorkflowT00101new
+Connected - Database: jdbc:mysql://fmportal.crw7rmbndgfd.us-east-1.rds.amazonaws.com:13306/CustomerData
+No Approver4
+Result: Approver1=jvigliotta@wfsd.k12.ny.us or clavorata@wfsd.k12.ny.us;Approver2=dbeggins@wfsd.k12.ny.us;Approver3=jgilmor@wfsd.k12.ny.us;Notify1=dgelman@wfsd.k12.ny.us;MSG=Approver rule #17 created 2021-01-20 20:11:17.0 modified 2021-01-20 20:19:49.0
+[0] Approver1=jvigliotta@wfsd.k12.ny.us or clavorata@wfsd.k12.ny.us;Approver2=dbeggins@wfsd.k12.ny.us;Approver3=jgilmor@wfsd.k12.ny.us;Notify1=dgelman@wfsd.k12.ny.us;MSG=Approver rule #17 created 2021-01-20 20:11:17.0 modified 2021-01-20 20:19:49.0

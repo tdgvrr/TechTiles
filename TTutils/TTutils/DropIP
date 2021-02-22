@@ -1,0 +1,26 @@
+#!/bin/bash
+
+LOG=/opt/TTutils/logs/DropIP.log
+WL=/opt/TTutils/conf/whitelist.txt
+BL=blacklist 
+IP=$1
+
+if [ -z "$1" ]; then
+   echo "$0 - missing IP address" | tee -a $LOG
+   exit 4
+fi
+
+# Check some whitelisted items
+
+if [ -f "$WL" ]; then
+   echo "$IP" | grepcidr -f $WL
+   if [ "$?" -eq "0" ]; then
+      echo "IP $IP found in whitelist $WL" | tee -a $LOG
+      exit 0
+   fi   
+fi 
+
+ipset add blacklist $IP  | tee -a $LOG
+
+# To reinstate, we'd do this with an "AT" command: 
+# ipset del blacklist $IP 

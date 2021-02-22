@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# Fetches a role given tenant and employee
+# 
+# GetRole <tenant> <employee> <default>
+#
+# <tenant> is a five-digit tenant ID (00202, for instance)
+# <employee> is a string of the form "@EmployeeID=nnnnn"
+# <default> is a role to use should none be found (typically the login role)
+
+NOW=`/bin/date +%d-%b-%Y@%T`
+AQ=/tenants/shared/appliance/jms/Appquery
+EID=`echo "$2" | cut -f 2 -d '='`
+DEF=`echo "$3" | cut -f 2 -d '='`
+LOG=/opt/TTloadRules/logs/GR-T$1-E$EID.$NOW.out
+
+echo "GetRole: $* [EID=$EID]" > $LOG 
+
+Q="exec [SSP].[p_RoleMembership_Select] @EmployeeID=$EID" 
+
+cd `dirname $AQ` 
+
+# NOTE: Assumes RoleName is the third output parameter 
+
+result=`$AQ "$1" "SELECT" "DEFAULT" "$Q" 2>>$LOG`
+
+if [[ -z "$result" || "$result" == "NULL" ]]; then
+   if [ -z "$DEF" ]; then
+      echo "RoleName=*MISSING*"
+   else
+      echo "RoleName=$DEF"
+   fi
+else
+   echo $result | cut -f 3 -d ';'  2>> $LOG
+fi

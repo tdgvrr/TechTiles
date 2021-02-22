@@ -1,0 +1,13 @@
+#!/bin/bash
+
+echo "Enter Tenant ID: (5 digits, greater than 01000 for Multi-tenant users)" 
+read tenant
+
+if [ -z "$tenant" ]; then
+   echo "ERROR: No Tenant supplied"
+   exit 8
+fi
+
+sudo $ROTMT $tenant "echo ::CMDSTART::;sudo /mnt/shared/cfg_reportMT $tenant" | sed '0,/::CMDSTART::/d' 2> /dev/null
+exit 0
+

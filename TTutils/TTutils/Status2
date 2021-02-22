@@ -1,0 +1,49 @@
+#!/bin/bash
+
+#
+# Status: display all connected tenants 
+#
+
+PEM=/opt/TTutils/conf/Appliance.pem
+CACHE=/opt/TTutils/data/Status.cache
+SSHOPT="-o UserKnownHostsFile=/dev/null -o ConnectTimeout=5"
+# Get the subnets for our tunnels
+
+SUBNET2=`ifconfig tun0 | grep "inet addr:" | cut -f 2 -d ":" | cut -f 1-3 -d "."`
+SUBNET1=`ifconfig tun1 | grep "inet addr:" | cut -f 2 -d ":" | cut -f 1-3 -d "."`
+/bin/date > $CACHE
+
+echo "SUBNET1 is $SUBNET1"
+echo "SUBNET2 is $SUBNET2"
+
+# Now, scan the OpenVPN status log to find connected clients
+
+C1=`grep $SUBNET1 /var/log/openvpn.status | cut -f 1 -d ","`
+if [ ! -z "$C1" ]; then
+   echo "HTTPS connections on subnet $SUBNET1.*" | tee -a $CACHE
+   for i in `echo "$C1"` 
+   do
+     MSG=`echo "" | ssh -p 11022 -i $PEM $SSHOPT master@$i 2>/dev/null`
+     NODE=`echo "$MSG" | grep Node: | cut -f 2 -d ":"`
+     NODE=`echo $NODE`
+     TENANT=`echo "$MSG" | grep "Tenant ID:" | cut -f 2 -d ":" | cut -f 3 -d " "`
+     TENANT=`echo $TENANT`
+     echo -e "IP:$i\tTenant:$TENANT\tNode:$NODE" | tee -a $CACHE
+   done
+else
+   echo "No connections found on $SUBNET1.*"
+fi
+
+C2=`grep $SUBNET2 /var/log/openvpn1194.status | cut -f 1 -d ","`
+if [ ! -z "$C2" ]; then
+   echo "OpenVPN native connections on subnet $SUBNET2.*" | tee -a $CACHE
+   for i in `echo "$C2"` 
+   do
+     MSG=`echo "" | ssh -p 11022 -i $PEM master@$i 2>/dev/null`
+     NODE=`echo "$MSG" | grep Node: | cut -f 2 -d ":"`
+     NODE=`echo $NODE`
+     TENANT=`echo "$MSG" | grep "Tenant ID:" | cut -f 2 -d ":" | cut -f 3 -d " "`
+     TENANT=`echo $TENANT`
+     echo -e "IP:$i\tTenant:$TENANT\tNode:$NODE" | tee -a $CACHE
+   done
+fi

@@ -1,0 +1,7 @@
+#!/bin/bash
+
+export FSKEY=`dmidecode_pub -s baseboard-serial-number | sha224sum | cut -f 1 -d ' '`
+
+echo $FSKEY | e4crypt add_key         > /dev/null 2>&1
+echo $FSKEY | e4crypt add_key -k @u   > /dev/null 2>&1
+echo $FSKEY | e4crypt add_key -k @us  > /dev/null 2>&1

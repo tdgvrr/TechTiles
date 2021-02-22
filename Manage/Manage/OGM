@@ -1,0 +1,65 @@
+#!/bin/bash
+
+ROOT=/shared/Manage
+NOW=`/bin/date +%Y-%m-%d@%H:%M:%S`
+EXIT=NO
+LOG=~/OGM.log
+CONFIRM=0
+export ROT=/opt/TTutils/SendCommand
+export ROTMT=/opt/TTutils/SendCommandMT
+
+clear
+# printf '\e[38;5;236m \n'
+# printf '\e[48;5;039m \n'
+echo "---SESSION START---" >> $LOG
+echo "Welcome to the TechTiles Management Utility - $NOW " | tee -a $LOG
+echo " " 
+set >> $LOG
+
+List()
+{
+   # List available options
+   funs=""
+   echo "These management functions are available:"
+   for i in `ls $ROOT/bin`; 
+   do
+     funs="$funs $i"
+   done
+   echo -e "   $funs \n"
+   return
+}
+
+# Main loop
+
+List 
+
+while [ "$EXIT" != "YES" ]
+do
+ echo -e "\nEnter a command, 'list', or 'exit':"
+ read ans a1 a2 a3 a4 a5 a6 
+ 
+ if [ -z "$ans" ]; then
+    EXIT=YES
+    continue
+ fi
+
+ if [ "${ans,,}" = "exit" ]; then
+    EXIT=YES
+    continue
+ fi
+ if [ "${ans,,}" = "list" ]; then
+    List
+    continue
+ fi
+ 
+ if [ -f "$ROOT/bin/$ans" ]; then
+    echo ">>>Running $ans $a1 $a2 $a3 $a3 $a5 $a6" | tee -a $LOG
+    sudo -E $ROOT/bin/$ans $a1 $a2 $a3 $a4 $a5 $a6 | tee -a $LOG 2>&1
+    echo ">>>$ans complete" | tee -a $LOG
+ else
+    echo "ERROR: $ans not found" | tee -a $LOG
+ fi 
+done 
+
+echo "Management utility exiting..." | tee -a $LOG
+exit 

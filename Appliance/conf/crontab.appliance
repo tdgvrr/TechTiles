@@ -1,0 +1,9 @@
+SHELL=/bin/bash
+HOME=/appliance
+PATH=/appliance/bin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+FMA_DIR=/appliance
+# Scheduled Tasks from the  
+# m h  dom mon dow   command
+@reboot /appliance/bin/ClearLogs
+*/10 * * * * /appliance/bin/CRONjob
+6 1 * * * /appliance/bin/Maint -f INSTALL

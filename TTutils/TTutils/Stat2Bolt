@@ -1,0 +1,31 @@
+#!/bin/bash
+
+#
+# Transform our appliance list to a Bolt inventory file
+#
+
+INV=/var/log/TechTiles/Appliance.lst 
+OUT=/var/log/TechTiles/Appliance.bolt
+PORT=11022
+NOW=`/bin/date`
+
+if [ -f "$INV" ]; then
+   echo "version: 2" > $OUT
+   echo "groups:"                       >> $OUT
+   echo "  - name: appliances"          >> $OUT
+   echo "    targets:"                    >> $OUT
+
+   for ip in `cat $INV | cut -f 1`
+   do
+   echo "       - $ip:$PORT"   >> $OUT
+   done
+
+   echo "    config:"                   >> $OUT
+   echo "      transport: ssh"          >> $OUT
+   echo "      ssh:"                     >> $OUT
+   echo "        port: $PORT"           >> $OUT
+   echo "        user: master"          >> $OUT
+   echo "        private-key: /opt/TTutils/conf/Appliance.pem" >> $OUT
+   echo "        host-key-check: false" >> $OUT
+fi
+

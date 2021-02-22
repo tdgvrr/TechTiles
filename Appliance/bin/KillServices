@@ -1,0 +1,53 @@
+#!/bin/bash
+
+# Script to find and kill all of the running service 
+# instances on an appliance (and all instances for 
+# all tenants on a multi-tenant device).
+
+LOG=/var/log/TechTiles/KillServices.log
+SYS=/etc/TechTiles/Appliance
+NOW=`/bin/date`
+ID=`id`
+
+List()
+{
+  x=`ps -eo pid,args | grep -v "grep" | grep "$1.groovy"`
+
+  cifs=$IFS
+  IFS=$'\n'
+  for i in $x;
+  do
+     line="${i#"${i%%[![:space:]]*}"}"
+     pid=`echo $line | cut -f 1 -d ' '`
+     echo "    Killing $1 $pid" >> $LOG
+     kill $pid >> $LOG 2>&1
+  done 
+  IFS=$cifs
+}
+
+if [ ! -d "/var/log/TechTiles" ]; then
+   mkdir -p /var/log/TechTiles
+fi
+
+if [ ! -f "$LOG" ]; then
+   echo "*** KillServices initialized $NOW ***" > $LOG
+fi
+echo ">>> Kill Services: STARTING $NOW" >> $LOG
+echo "    ID: $ID" >> $LOG
+
+# See if we have a multi-tenant appliance
+
+if [ -f "$SYS" ]; then
+   grep -i "Type=MULTI" $SYS > /dev/null 2>&1
+   if [ "$?" -eq "0" ]; then
+      echo "    Multi-Tenant system " >> $LOG
+   fi
+fi
+
+List Login
+List Logoff
+List Control
+List DB
+List Action
+
+exit 0

@@ -1,0 +1,89 @@
+#!/bin/bash
+
+# Simple HealthCheck for all our services
+
+LOG=/var/log/TechTiles/Health.log
+ZSENDER=/usr/bin/zabbix_sender
+H=`hostname`
+RC=0
+
+function CheckService()
+{
+  echo "Checking service $1..." | tee -a $LOG
+  service $1 status >> $LOG 2>&1
+  if [ "$?" -ne "0" ]; then
+     echo "Service $1 not running!" | tee -a $LOG
+     RC=1
+  else
+     echo "Service $1 is running" >> $LOG
+  fi
+} 
+
+function CheckProcess()
+{
+  echo "Checking process $1..." | tee -a $LOG
+  ps -ef | grep -i "$1" >> $LOG 2>&1
+  if [ "$?" -ne "0" ]; then
+     echo "Process $1 not running!" | tee -a $LOG
+     RC=1
+  else
+     echo "Process $1 is running" >> $LOG
+  fi
+} 
+
+function CheckDB()
+{
+export MYSQL_PWD=Smp4@dmv
+DBHOST=fmportal.crw7rmbndgfd.us-east-1.rds.amazonaws.com
+echo "Checking database status..." | tee -a $LOG
+TC=`echo 'show global status like "Threads_connected";' | mysql -h $DBHOST -u maint -P 13306 | tail -1`
+if [ -z "$TC" ]; then
+   echo "Can't connect to MySQL on $DBHOST!" | tee -a $LOG
+   RC=1
+else
+   echo "Database $TC" | tee -a $LOG
+fi
+unset MYSQL_PWD
+}
+
+echo "HealthCheck STARTS - `/bin/date`" | tee -a $LOG
+
+CheckService openvpn
+CheckService activemq
+CheckService apache2
+CheckService zabbix-agent
+CheckService zabbix-server
+CheckService fail2ban
+CheckService tomcat7
+CheckService incron
+CheckService rsyslog
+CheckService rpcbind
+CheckService nfs-kernel-server
+
+CheckProcess mule
+CheckProcess squid
+CheckProcess wetty
+
+# Get DB connection count
+
+CheckDB 
+
+# A little extra checking for OpenVPN...
+
+VPNs=`grep "10.8" /var/log/openvpn.status | wc -l`
+if [ -z "VPNs" ]; then
+   echo "WARNING: No VPN sessions" | tee -a $LOG
+else
+   echo "$VPNs OpenVPN sessions found" | tee -a $LOG
+fi
+
+if [ "$RC" -ne "0" ]; then
+   echo "WARNING: At least one required service not found" | tee -a $LOG
+   $ZSENDER -z localhost -p 10051 -s $H -k server.alert -o "HealthCheck: WARNING - at least one service not running" >> $LOG
+else
+   echo "All services are running" | tee -a $LOG
+fi
+
+echo "HealthCheck ENDS" | tee -a $LOG
+
+exit $RC

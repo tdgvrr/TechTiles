@@ -1,0 +1,18 @@
+#
+# This file describes our network interfaces when an appliance is
+# configured for a static IP address. 
+# 
+# This file applies to appliances running Ubuntu 16.04
+#
+# For more information, see interfaces(5).
+
+source /etc/network/interfaces.d/*
+
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+# Wired Ethernet - DHCP
+auto enp0s25
+iface enp0s25 inet dhcp
+

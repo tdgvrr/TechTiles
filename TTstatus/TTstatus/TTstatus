@@ -1,0 +1,124 @@
+#!/bin/bash
+
+#
+# TTstatus: Send a workflow status summary  
+#
+# This script checks for workflows having pending approvals and sends an overall index 
+# listing each one found.
+#
+# Syntax: 
+# 
+# TTstatus -t <tenant-id> -a <min-age> -o <max-age> -e <email> -s -d -l
+#
+# Where: 
+#
+#    - tenant-id          ID of the tenant data to use
+#    - min-age            Only process approvals at least this old
+#    - max-age            Don't process approvals older than this  
+#    - email              Target email address to receive report 
+#
+# -s is summary only. No details are generated.
+# -l generates links for APPROVE/REJECT actions for pending items.
+# -d turns on debugging. No email will be sent to users and debugging info will be produced. 
+#
+# Database configuration data must be stored in /etc/TechTiles/sysvars for this to work. 
+#
+# (c) 2019, TechTiles LLC - All Rights Reserved. 
+#
+# V1.0 - Jan2019: New [VRR]
+#
+
+DEBUG=0                  # Set to "1" to get additional debug messages
+DIR="/opt/TTstatus"   # Install directory
+if [ ! -d "$DIR" ]; then
+   DIR="."
+fi
+
+NOW=`date +%m-%d-%Y@%H:%M:%S`
+STDERR=$DIR/logs/TTstatus-$NOW.out
+TEN=""
+MIN=1 
+MAX=30
+
+if [ ! -z "$TTDEBUG" ]; then
+   DEBUG=1
+fi
+
+cd $DIR             # Be sure we run in our install directory
+
+# First, we bring in the TechTiles system configuration variables 
+
+if [ -f /etc/TechTiles/sysvars ]; then
+    . /etc/TechTiles/sysvars
+fi
+
+if [ -f ./sysvars ]; then 
+    . ./sysvars
+fi
+
+unset NODETAIL
+export TTDB TTDBPORT TTDBUSER TTDBPASS
+
+# Process the command line options
+
+while getopts "t:a:o:e:hdls" opt; do
+   case $opt in
+   d)
+     DEBUG=1
+   ;;
+   s)
+     export NODETAIL=YES
+   ;;
+   l)
+     export APPROVE=YES
+   ;;
+   a)
+     MIN=$OPTARG
+   ;;
+   o)
+     MAX=$OPTARG
+   ;;
+   e)
+     MAILID=$OPTARG
+   ;;
+   t)
+     TEN=$OPTARG
+   ;;
+   h)
+     echo "$0 -t <tenant-id> -a <min-age> -o <max-age> -e <email> -s -l -d"
+     exit 1
+   ;;
+   \?)
+     echo "Invalid option: -$OPTARG"
+     exit 4
+   ;;
+   :)
+     echo "Option -$OPTARG missing argument"
+     exit 4
+   ;;
+   esac
+done
+
+if [ -z "$TEN" ]; then
+    echo "ERROR: Missing Tenant ID (-t <tenant-id>)"
+    exit 4
+fi
+
+if [ -z "$MIN" ]; then
+   MIN=1
+fi
+
+if [ -z "$MAX" ]; then
+   MAX=30
+fi
+
+if [ "$DEBUG" = "1" ]; then
+   export TTDEBUG=YES
+fi
+
+echo "TTstatus: Tenant $TEN minimum age $MIN and maximum age $MAX"
+
+# Hand off to the Groovy script 
+
+$DIR/TTstatus.groovy $TEN $MIN $MAX $MAILID >> $STDERR 2>&1
+exit $? 

@@ -1,0 +1,44 @@
+#!/bin/bash
+
+DIR=/secure 
+KEY=/dev/shm/TPMkey.42
+KEY2=/dev/shm/TPM.42
+OPT="ecryptfs_cipher=aes,ecryptfs_key_bytes=16,ecryptfs_passthrough=y,no_sig_cache,ecryptfs_enable_filename_crypto=n"
+
+logger OpenVault START
+
+if [ "$EUID" != "0" ]; then
+  echo "ERROR: Not root" | logger
+  exit 8
+fi
+
+rm $KEY $KEY2
+
+STAT=`service tcsd status | grep Active | grep "running"` 
+while [ -z "$STAT" ]
+do
+   echo "Waiting for TPM Service (tcsd) to start" | logger
+   sleep 5
+   STAT=`service tcsd status | grep Active | grep "running"`
+done
+
+tpm_nvread -i 42 -s 256 -z -f $KEY2 > /dev/null 2>&1
+
+if [ "$?" = "0" ]; then
+   FSKEY=`cat $KEY2 | head -n 1` 
+else
+   echo $RESULT | logger
+fi
+
+echo "passphrase_passwd=$FSKEY" > $KEY
+
+X=`df -T $DIR | grep ecryptfs`
+
+if [ -z "$X" ]; then
+   echo "Mounting $DIR..." | logger
+   mount -t ecryptfs -o "key=passphrase:passphrase_passwd_file=$KEY,$OPT" "$DIR" "$DIR" | logger 2>&1
+else
+   echo "$DIR already mounted" | logger
+fi
+
+logger OpenVault END

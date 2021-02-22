@@ -1,0 +1,19 @@
+#!/bin/bash
+
+echo "Enter Tenant ID: (5 digits)" 
+read tenant
+
+if [ -z "$tenant" ]; then
+   echo "ERROR: No Tenant supplied"
+   exit 8
+fi
+
+echo "Active Directory Server Discovery - Tenant $tenant" 
+if [ "$tenant" -gt "00999" ]; then
+   sudo $ROTMT $tenant "echo ::CMDSTART::;/mnt/shared/Manage/remote/GetLDAPhost $tenant" | sed '0,/::CMDSTART::/d' 2> /dev/null
+else
+   sudo $ROT $tenant "echo ::CMDSTART::;/mnt/shared/Manage/remote/GetLDAPhost" | sed '0,/::CMDSTART::/d' 2> /dev/null
+fi
+
+exit 0
+

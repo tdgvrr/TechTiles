@@ -1,0 +1,101 @@
+#!/bin/bash
+# 
+# Script that runs every few minutes under CRON  
+#
+
+# Set install directory (default: /appliance)
+
+function DoPid()
+{
+ ps=`ps -eo pid,command | grep $1.groovy | grep -v grep` 
+ pnum=`echo $ps | wc -l`
+ pid=`echo $ps | cut -f 1 -d ' '`
+
+ if [[ -z "$ps" || "$pnum" == "0" ]]; then
+     echo "WARNING: $1 is not running - attempting restart" >> $LOG
+     $FMA_DIR/bin/JMSstart $1 >> $log 2>> $log
+ else
+     if [[ "$pnum" -gt "1" ]]; then
+         echo "WARNING: More than 1 $1 running" >> $LOG
+     fi
+ fi
+}
+
+if [ -z "$FMA_DIR" ]; then
+   export FMA_DIR=/appliance
+   if [ ! -d "$FMA_DIR" ]; then
+      x=`readlink -f $0`
+      x=`dirname $x`/..
+      export FMA_DIR=`readlink -f $x`
+   fi
+fi
+
+. $FMA_DIR/conf/sysvars
+
+log=$FMA_DIR/logs/CRONjob.log
+now=`/bin/date`
+export PATH=$PATH:$FMA_DIR/bin
+
+echo "Awake at $now in $FMA_DIR" >> $log
+
+if [ "$FMA_DORM" == "YES" ]; then
+   echo "System is dormant - exiting" >> $log
+   exit 0
+fi 
+
+# Check that the VPN connection is alive 
+
+if [ -f "$FMA_DIR/bin/VPNping.sh" ]; then
+   $FMA_DIR/bin/VPNping.sh >> $log 2>> $log 
+   if [ $? -ne 0 ]; then
+      echo "WARNING: VPNping.sh error" >> $log
+      exit 0
+   fi
+fi
+
+# Check the PIDs and the JMS fabric end to end
+
+DoPid DB
+DoPid Login
+DoPid Logoff
+DoPid Control
+
+#LIST=`ls $FMA_DIR/data/*.pid 2> /dev/null`
+#if [ "$?" -eq "0" ]; then
+#   for i in $LIST
+#   do
+#      pid=`cat $i | cut -f 2 -d =`
+#      serv=`cat $i | cut -f 1 -d .`
+#      echo "Checking service $serv PID $pid" >> $log
+#      kill -0 $pid 2>> $log
+#      if [ "$?" -ne "0" ]; then
+#         echo "WARNING: Service $serv PID $pid not found - attempting restart" >> $log
+#         $FMA_DIR/bin/JMSstart $serv >> $log 2>> $log
+#      else
+#         $FMA_DIR/bin/JMSping $serv >> $log
+#         if [ $? -ne 0 ]; then
+#            echo "WARNING: Ping failed, but process running - see above " >> $log
+#            kill $pid 2>> $log
+#            $FMA_DIR/bin/JMSstart $serv >> $log 2>> $log
+#         fi
+#      fi
+#   done
+#fi
+
+# There are some tasks we only run once a day 
+
+now=`/bin/date +%H:%M`
+if [[ "$now" > "03:45" ]] || [[ "$now" < "04:15" ]]; then
+   echo "Performing daily extra tasks..." >> $log
+   find $FMA_DIR/logs/archive -name "*.gz" -mtime +30 -size +32k -exec rm {} \;
+   if [ -f "$log" ]; then 
+      size=`stat -c %s $log`
+      if [ "$size" -gt "1000000" ]; then
+         echo "***Wrapped on `/bin/date` ***" > $log.temp
+         tail --lines 5000 $log >> $log.temp
+         mv $log.temp $log
+      fi
+   fi 
+fi
+   
+exit 0

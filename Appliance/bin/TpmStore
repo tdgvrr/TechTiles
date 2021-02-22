@@ -1,0 +1,62 @@
+#!/bin/bash
+
+# Script to store a string in the TPM non-volatile memory area 
+
+MAXSIZE=256
+FILE=/dev/shm/TPM-$RANDOM.key
+
+# Must be root
+
+if [ "$EUID" != "0" ]; then
+  echo "ERROR: Not root" 
+  exit 8
+fi
+
+if [ -z "$1" ]; then
+   echo "ERROR: Missing NVRAM index"
+   exit 8
+fi
+
+if [[ $1 =~ [^[:digit:]] ]]
+then
+   echo "ERROR: NVRAM index must be a numeric value"
+   exit 8
+fi
+
+if [ -z "$2" ]; then
+   echo "ERROR: Missing string value to store"
+   exit 8
+fi
+LEN=`expr ${#2} + 1`  
+if [ "$LEN" -gt "$MAXSIZE" ]; then
+   echo "String too long ($LEN)"
+   exit 8
+fi
+
+STAT=`service tcsd status | grep Active | grep "running"` 
+if [ -z "$STAT" ]; then
+   echo "ERROR: TPM Service (tcsd) not found"
+   exit 8 
+fi
+
+# Copy the string to a temp file 
+
+echo "$2" > $FILE
+
+# Now do the TPM functions
+
+tpm_takeownership -y -z > /dev/null 2>&1        
+tpm_nvrelease -i $1 -y > /dev/null 2>&1
+tpm_nvdefine -i $1 -s $MAXSIZE -p "AUTHREAD|AUTHWRITE" -y -z > /dev/null 2>&1
+RESULT=`tpm_nvwrite -i $1 -s $LEN  -f $FILE -z`  
+if [ "$?" = "0" ]; then
+   echo "Stored $2 ($LEN) into TPM NV index $1"
+   RC=0
+else
+   echo $RESULT
+   RC=4
+fi
+rm $FILE
+
+exit $RC
+

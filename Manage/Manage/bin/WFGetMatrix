@@ -1,0 +1,35 @@
+#!/bin/bash
+
+DL=/opt/TTloadRules/DataList 
+ARGE=""
+ARGS=""
+
+echo "Enter Tenant ID: (5 digits)" 
+read tenant
+
+if [ -z "$tenant" ]; then
+   echo "ERROR: No Tenant supplied"
+   exit 8
+fi
+
+echo "Enter email address where CSV file will be sent:"
+echo "(press enter to display here instead of email)" 
+read email
+
+if [ ! -z "$email" ]; then
+   ARGE="-e $email" 
+fi
+
+echo "Enter a table name if you want a specific object:"
+echo "(press enter to see all objects active in tenant $tenant workflows)" 
+read select
+
+if [ ! -z "$select" ]; then
+   ARGE="-s $select" 
+fi
+
+cd `dirname $DL`
+$DL  -t $tenant "$ARGE" "$ARGS" 
+ 
+exit 0
+

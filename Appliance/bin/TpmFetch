@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# Script to fetch a string from a given TPM non-volatile memory area 
+
+MAXSIZE=256
+FILE=/dev/shm/TPM-$RANDOM.data
+
+# Must be root
+
+if [ "$EUID" != "0" ]; then
+  echo "ERROR: Not root" 
+  exit 8
+fi
+
+if [ -z "$1" ]; then
+   echo "ERROR: Missing NVRAM index"
+   exit 8
+fi
+
+if [[ $1 =~ [^[:digit:]] ]]
+then
+   echo "ERROR: NVRAM index must be a numeric value"
+   exit 8
+fi
+
+STAT=`service tcsd status | grep Active | grep "running"` 
+if [ -z "$STAT" ]; then
+   echo "ERROR: TPM Service (tcsd) not found"
+   exit 8 
+fi
+
+RESULT=`tpm_nvread -i $1 -s $MAXSIZE -z -f $FILE`  
+if [ "$?" = "0" ]; then
+   cat $FILE | head -n 1 
+   RC=0
+else
+   echo $RESULT
+   RC=4
+fi
+rm $FILE
+exit $RC
+

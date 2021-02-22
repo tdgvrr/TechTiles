@@ -1,0 +1,110 @@
+#!/bin/bash
+
+LOG=/opt/TTutils/logs/GBL.log
+BLACKLIST=blacklist 
+IPSET=/sbin/ipset
+IPTABLES=/sbin/iptables
+SAVE=/opt/TTutils/conf/blacklist.ipset 
+BL1=/opt/TTutils/conf/blacklist1.txt
+BL2=/opt/TTutils/conf/blacklist2.txt
+BL3=/opt/TTutils/conf/blacklist3.txt
+BL4=/opt/TTutils/conf/ttbl.txt
+BLS=/opt/TTutils/conf/blacklist.txt
+WL=/opt/TTutils/conf/whitelist.txt
+
+echo "---GetBlacklist $@ at `/bin/date`---" >> $LOG
+
+# Fetch the latest blacklists...can be many, so long as the format puts an IP address first 
+
+echo "curl --compressed https://raw.githubusercontent.com/stamparm/ipsum/master/ipsum.txt > $BL1" >> $LOG
+curl --compressed https://raw.githubusercontent.com/stamparm/ipsum/master/ipsum.txt > $BL1 2>> $LOG
+echo "curl https://www.binarydefense.com/banlist.txt > $BL2" >> $LOG
+curl              https://www.binarydefense.com/banlist.txt > $BL2 2>> $LOG
+echo "curl https://secureupdates.checkpoint.com/IP-list/TOR.txt > $BL3" >>$LOG
+curl              https://secureupdates.checkpoint.com/IP-list/TOR.txt > $BL3 2>>$LOG
+
+dos2unix $BL1 > /dev/null 2>&1
+dos2unix $BL2 > /dev/null 2>&1
+dos2unix $BL3 > /dev/null 2>&1
+
+# See if our IPSET blacklist exists and create it if not
+
+$IPSET list $BLACKLIST > /dev/null 2>> $LOG
+if [ "$?" -ne "0" ]; then
+   echo "Creating $BLACKLIST..." >> $LOG
+   $IPSET create $BLACKLIST hash:ip family inet hashsize 393216 maxelem 796432 >> $LOG 2>&1
+   if [ "$?" -ne "0" ]; then
+      echo "ERROR: Can't create $BLACKLIST" >> $LOG
+      exit 4
+   fi
+fi 
+
+if [ "$1" = "FLUSH" ]; then 
+   $IPSET flush $BLACKLIST >> $LOG 2>&1  
+fi
+
+# Join the blacklist files together and remove duplicates  
+
+grep -hv "^#" $BL1 $BL2 $BL3 $BL4 | tr '\t' ' ' | cut -f 1 -d ' ' | cut -f 1 -d '#' | sort -uo $BLS
+
+tot=`wc -l $BLS | cut -f 1 -d ' '` 
+echo "Blacklist contains $tot items" >> $LOG
+count=0
+
+for i in `cat $BLS`
+do
+   let "count=count+1" 
+   let "tot=tot-1"
+   if [ "$count" -gt "1000" ]; then
+      echo ...did 1000 more - $tot remain... >> $LOG
+      count=1
+   fi
+    
+   if [ -z "$i" ]; then
+      continue
+   fi
+
+   # See if already blocked
+
+   $IPSET test $BLACKLIST $i > /dev/null 2> /dev/null 
+   if [ "$?" -eq "0" ]; then
+      continue
+   fi
+
+   # Check our whitelist
+
+   if [ -f "$WL" ]; then
+      echo "$i" | grepcidr -f $WL
+      if [ "$?" -eq "0" ]; then
+         echo "WARNING: Skipped blacklisted IP $i, found in whitelist [$WL]" >> $LOG
+         continue
+      fi   
+   fi 
+
+   # Not whitelisted - just add it to the blacklist 
+
+   $IPSET add $BLACKLIST $i -exist >> $LOG 2>&1
+
+done
+
+# Save the blacklist in IPSET format 
+
+find `dirname $SAVE` -name "`basename $SAVE`*" -mtime +3 -exec rm {} \;
+$IPSET save $BLACKLIST > "$SAVE-`/bin/date +%d-%b-%Y@%T`"
+
+# Activate the new rules 
+
+$IPTABLES -S INPUT | grep "match-set $BLACKLIST" > /dev/null 2>&1
+if [ "$?" -ne "0" ]; then
+   echo "Activating INBOUND blacklist rules..." >> $LOG
+   $IPTABLES -I INPUT -m set --match-set $BLACKLIST src -j DROP >> $LOG
+fi
+
+$IPTABLES -S FORWARD | grep "match-set $BLACKLIST" > /dev/null 2>&1
+if [ "$?" -ne "0" ]; then
+   echo "Activating FORWARD blacklist rules..." >> $LOG
+   $IPTABLES -I FORWARD -m set --match-set $BLACKLIST src -j DROP >> $LOG
+fi
+
+echo "---GetBlacklist END at `/bin/date`---" >> $LOG
+exit 0

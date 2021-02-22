@@ -1,0 +1,34 @@
+#!/bin/bash
+
+# Script run by the "dhcp" user to reset the network config back to DHCP
+#
+# 1. Create a user account called "dhcp" with useradd/passwd and create his home dir
+# 2. Copy the "SetDHCP.profile" script to ~dhcp/.profile (and maybe ~dhcp/.bashrc)
+# 3. Make sure the /etc/sudoers.d allows the dhcp user to run /appliance/bin/SetDHCP as root
+#
+
+LOG=/var/log/TechTiles/SetDHCP.log
+NOW=`/bin/date +%Y-%m-%d@%H:%M:%S`
+
+echo ">>> STARTED $NOW" >> $LOG
+
+id >> $LOG 2>&1
+echo " " 
+echo "Do you wish to reset the system network configuration to DHCP? [yn]"
+read ans
+
+if [ "$ans" = "Y" -o "$ans" = "y" ]; then 
+   echo "Okay - reconfiguring network to DHCP"
+   echo "Activating DHCP network configuration"  | tee -a $LOG
+   echo "---Current Configuration---" >> $LOG
+   cat /etc/network/interfaces >> $LOG
+   echo "---New Configuration---" >> $LOG
+   cat /appliance/conf/interfaces.dhcp >> $LOG
+   cp /etc/network/interfaces /etc/network/interfaces.$NOW 2>> $LOG
+   cp /appliance/conf/interfaces.dhcp /etc/network/interfaces 2>> $LOG
+   echo "Update complete - please reboot the system to commit the changes" | tee -a $LOG
+else
+   echo "Configuration not changed" | tee -a $LOG
+fi
+
+exit 0

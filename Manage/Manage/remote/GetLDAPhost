@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# finds the hostnames for an a given AD domain
+
+if [ -z "$FMA_DIR" ]; then
+   export FMA_DIR=/appliance
+   if [ -f "/etc/TechTiles/Appliance" ]; then
+      FMA_DIR=/secure/tenant.$1
+   fi
+fi
+
+if [ -f "$FMA_DIR/conf/sysvars" ]; then
+   . $FMA_DIR/conf/sysvars
+else
+   echo "WARNING: No system configuration for tenant"
+fi
+
+if [ ! -z "$AUTH_DEFDMN" ]; then
+   target=$AUTH_DEFDMN
+else
+   echo "WARNING: Missing default domain in configuration settings"
+fi
+
+echo "Microsoft Active Directory advertises it's availability by publishing SRV (service)"
+echo "records in the local DNS server. Assuming the correct DNS information is configured,"
+echo "these SRV records can be fetched to discover the network address of the Domain Controller"
+echo "and Active Directory services."
+echo " "
+echo "Query tenant $TENANT for domain <$target>"
+echo " "
+host -v -t srv _ldap._tcp.$target
+echo " " 
+
+for i in `host -t SRV _ldap._tcp.$target | cut -f 8 -d ' '`
+do
+ echo " " 
+ echo "Base query for $i"
+ curl --max-time 5 "ldap://$i" 2>/dev/null
+done

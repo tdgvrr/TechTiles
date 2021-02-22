@@ -1,0 +1,257 @@
+#!/bin/bash
+
+#
+# MakeW4.sh: Generate an IRS W4 from a form submission using an existing PDF template. 
+#
+# This script can be run as a step in the TechTiles Form Processing Workflow in order
+# to automatically generate a highly formatted PDF from a template using the data that
+# a user submitted on a form. 
+#
+# Syntax: 
+# 
+# MakeW4 -f <form-id> -p <PDF-template> -t <script-template> -e <email-template> -o <target>
+#
+# Where: 
+#
+#    - form-id            ID of the form data (in the customer's DB under Forms.FormSubmissions)
+#    - PDF-template       File name of the source PDF
+#    - script-template    A template containing the commands needed to create the output PDF
+#    - email-template     A template containing text forming the email notification message
+#    - target             What to do with the output PDF. Can be file:filename or email:emailID
+#
+# Script template is a series of one or more commands in this format:
+#
+#    list
+#    get  <PDF-field-name-or-number> 
+#    font <PDF-text-appearance-string>
+#    set  <PDF-field-name-or-number>=<value>
+#    sign <PDF-field-name-or-number> 
+#    quit
+#
+# The PDF-field-name can be obtained with the ListPDF script. You must use the fully qualified field name, 
+# or the relative field number (1 is the first field, etc). 
+#
+# PDF appearance strings specify font name/size, color, etc for text - for example "/Helv 0 Tf 0 g". You must
+# use a font which is already packaged in the PDF. This command applies to all subsequent text updates. 
+#
+# Value can be any string suitable for the field. For checkboxes (etc), a value of "1" is TRUE and checks the
+# box (or other binary control). 
+#
+# (c) 2018, TechTiles LLC - All Rights Reserved. 
+#
+# V1.0 - Feb2016: New [VRR]
+# V1.1 - Sep2016: Add signature and font support [VRR]
+# V1.2 - Jan2017: Flatten PDF [VRR]
+# V1.3 - Jun2018: Embedded XML signatures [VRR]
+#
+
+DEBUG=1              # Set to "1" to get additional debug messages
+DIR="/opt/PDFbox"    # Install directory
+APPDIR=/tenants/shared/appliance/jms         # The appliance routines are here
+PDFDIR=/tmp          # Working directory for PDF build       
+STDERR=$DIR/logs/MakeW4-$$.out
+FORM=""
+PDF=""
+SCRIPT=""
+TARGET=""
+ETEMPL=""
+FLATTEN=1
+SIGFIELD=Signature
+
+if [ ! -z "$TTDEBUG" ]; then
+   DEBUG=1
+fi
+
+cd $DIR             # Be sure we run in our install directory
+
+# First, we bring in the TechTiles system configuration variables 
+
+if [ -f /etc/TechTiles/sysvars ]; then
+    . /etc/TechTiles/sysvars
+fi
+export TENANT TTDB TTDBPORT TTDBUSER TTDBPASS
+
+# Process the command line options
+
+while getopts "e:f:p:t:o:h" opt; do
+   case $opt in
+   e)
+     ETEMPL=$OPTARG
+   ;;
+   f)
+     FORM=$OPTARG
+   ;;
+   p)
+     PDF=$OPTARG
+   ;;
+   t)
+     SCRIPT=$OPTARG
+   ;;
+   o)
+     TARGET=$OPTARG
+   ;;
+   h)
+     echo "MakeW4.sh -f <form-id> -p <PDF-template> -t <script-template> -e <email-template> -o <target>"
+     exit 1
+   ;;
+   \?)
+     echo "Invalid option: -$OPTARG"
+     exit 4
+   ;;
+   :)
+     echo "Option -$OPTARG missing argument"
+     exit 4
+   ;;
+   esac
+done
+
+if [ -z "$FORM" ]; then
+    echo "ERROR: Missing form ID (-f <form id number>)"
+    exit 4
+fi
+
+if [ -z "$PDF" ]; then
+   echo "ERROR: Missing source PDF (-p <pdf file>)"
+   exit 4
+fi
+
+if [ -z "$TARGET" ]; then
+   echo "ERROR: Missing output target (-o <file or email>)"
+   exit 4
+fi
+
+if [ -z "$SCRIPT" ]; then
+   echo "ERROR: Missing edit script (-t <script template>)"
+   exit 4
+fi
+
+if [ -z "$ETEMPL" ]; then
+   ETEMPL="MakeW4.template"
+fi
+
+echo "MAKEW4 request is: Format $FORM using $PDF with edit template $SCRIPT, email template $ETEMPL and output to $TARGET"
+
+# Make sure the files exist...if not, look here and there
+
+if [ ! -f "$PDF" ]; then
+   if [ -f "./source/$PDF" ]; then
+      PDF="./source/$PDF"
+   else
+      PDF="$DIR/source/$PDF"
+   fi
+   if [ ! -f "$PDF" ]; then
+      echo "ERROR: Source PDF $PDF does not exist"
+      exit 4
+   fi
+fi
+
+if [ ! -f "$SCRIPT" ]; then
+   if [ -f "./template/$SCRIPT" ]; then
+      SCRIPT="./template/$SCRIPT"
+   else
+      SCRIPT="$DIR/template/$SCRIPT"
+   fi
+   if [ ! -f "$SCRIPT" ]; then
+      echo "ERROR: Script file $SCRIPT does not exist"
+      exit 4
+   fi
+fi
+
+if [ ! -f "$ETEMPL" ]; then
+   if [ -f "./template/$ETEMPL" ]; then
+      ETEMPL="./template/$ETEMPL"
+   else
+      ETEMPL="$DIR/template/$ETEMPL"
+   fi
+   if [ ! -f "$ETEMPL" ]; then
+      echo "ERROR: email template file $ETEMPL does not exist"
+      exit 4
+   fi
+fi
+
+# Resolve all the variables in the edit template using a groovy script
+
+echo "Resolve script commands..." >> $STDERR
+LINES=`$DIR/GetEdits.groovy $FORM $SCRIPT 2>> $STDERR`
+MSGS=`cat $STDERR`
+export FORMNAME=`grep '##' $STDERR | cut -d "#" -f 3`
+
+if [ -z "$LINES" ]; then
+    echo "ERROR: Script template doesn't resolve"
+    cat $STDERR
+    exit 4
+fi
+
+# The W4 signature comes in with the form XML - get it into a local file
+
+echo "Get form signature (if any)..." >> $STDERR
+SIGPNG=`$DIR/GetXMLSignature.groovy $FORM $SIGFIELD 2>> $STDERR`
+SIGJPG=""
+if [ "$?" -eq "0" ]; then
+  if [ -f "$SIGPNG" ]; then
+     SIGJPG=${SIGPNG/%.png}.jpg
+     convert -trim $SIGPNG -format jpb -background white -flatten -trim "$SIGJPG" >> $STDERR 2>&1 
+  fi
+else
+  SIGPNG=""  
+fi
+
+# Now we can build the target PDF
+
+echo "Building output PDF" >> $STDERR
+P=MakeW4-$RANDOM.pdf
+T=$PDFDIR/$P 
+echo -e "$LINES" | java -jar Populater.jar $PDF $T $SIGJPG >> $STDERR 2>&1
+
+# If the PDF needs flattening, we have a few more steps. 
+#    1. Pdf2Png.jar emits a PNG file for every page in the PDF
+#    2. convert takes the PNG files and outputs a "flat" PDF
+
+if [ "$FLATTEN" = "1" ]; then
+  echo "Flattening PDF $P" >> $STDERR
+  java -jar Pdf2Png.jar $T >> $STDERR 2>&1
+  # java -jar ./lib/pdfbox-app-1*.jar PDFToImage -format png -dpi 150 $T >> $STDERR 2>&1
+  PNGS=`ls $PDFDIR/$P*.png`
+  convert -quality 100 $T*.png $T >> $STDERR 2>&1
+  rm $PNGS
+  echo "Flattening complete" >> $STDERR
+fi 
+
+# Update the FM database with the W4
+
+echo "Storing W4 in FM Database" >> $STDERR
+cd $APPDIR
+./AppqueryW4 $FORM $T 2>> $STDERR
+cd $DIR
+
+if [ "$DEBUG" -ne "0" ]; then
+   if [ -f "$STDERR" ]; then
+     echo "---STDERR---"
+     cat $STDERR
+   fi
+fi
+
+# Deliver the PDF to the target (email or other)
+
+echo "Sending $T to $TARGET" >> $STDERR
+$DIR/SendTarget.groovy $T $ETEMPL $TARGET 2>> $STDERR
+
+if [ "$DEBUG" -ne "0" ]; then
+   if [ -f "$STDERR" ]; then
+     echo "---STDERR---"
+     cat $STDERR
+   fi
+fi
+
+# If we created any files, delete them here
+
+if [ -f "$SIGPNG" ]; then
+   rm $SIGPNG
+fi
+if [ -f "$SIGJPG" ]; then
+  rm $SIGJPG
+fi
+if [ -f "$T" ]; then
+  rm $T
+fi
+
